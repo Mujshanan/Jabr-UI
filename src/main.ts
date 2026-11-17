@@ -68,7 +68,9 @@ async function initializeDocument() {
     worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet' as never, {} as never, root.id);
   }
 
-  const worksheetModel = doc.root.children.find(child => child.flavour === 'jabr:worksheet');
+  const rootModel = doc.root;
+  if (!rootModel) throw new Error('The document root could not be initialized.');
+  const worksheetModel = rootModel.children.find(child => child.flavour === 'jabr:worksheet');
   if (!worksheetModel) throw new Error('The document is missing its worksheet hub.');
   worksheetController = new WorksheetController({
     documentId: DOCUMENT_ID,
