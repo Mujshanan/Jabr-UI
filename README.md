@@ -7,10 +7,10 @@ BlockSuite-based calculation-sheet blocks. Jabr UI is intended to remain indepen
 This repository currently contains a minimal BlockSuite host and one custom math block:
 
 - `jabr:root`: a small document root used by the standalone prototype.
-- `jabr:math`: a content block embedding MathLive's `<math-field>`.
+- `jabr:text`: a minimal editable plain-text block for testing BlockSuite schema registration, rendering, model updates, and persistence.\n- `jabr:math`: a content block embedding MathLive's `<math-field>`.
 - LaTeX source is stored in the BlockSuite document model; rendered DOM is never persisted.
 - The initial interaction uses MathLive's fill-in-the-blank mode: the surrounding expression is read-only while named placeholders remain editable.
-- MathLive input updates the BlockSuite model, and external model changes are reflected back into the field.
+- MathLive input updates the BlockSuite model, and external model changes are reflected back into the field.\n- The math block includes an output inspector for complete LaTeX, LaTeX with placeholders expanded, and each individual prompt value.
 - The demo document is persisted locally using IndexedDB through `y-indexeddb`.
 
 The root block and demo host are scaffolding for this prototype, not a general block framework.
@@ -27,7 +27,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local Vite URL. Use **Add math block** to insert another expression. Each block starts with editable numerator, denominator, and variable placeholders.
+Open the local Vite URL. Use **Add text block** to test plain-text document updates and **Add math block** to insert another expression. Each math block starts with editable numerator, denominator, and variable placeholders. Expand **Inspect MathLive output** beneath a math field to inspect its LaTeX and prompt values.
 
 ## Build
 
