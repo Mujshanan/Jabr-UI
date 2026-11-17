@@ -9,6 +9,7 @@ import { JabrTextSchema } from './blocks/text';
 import { JabrRootSchema } from './editor/root';
 import { JabrWorksheetSchema } from './editor/worksheet';
 import { JabrBlockExtensions } from './editor/specs';
+import { WorksheetController, type WorksheetModelLike } from './worksheet/controller';
 
 const DATABASE_NAME = 'jabr-ui-worksheet-v1';
 const DOCUMENT_ID = 'calculation-sheet';
@@ -44,6 +45,8 @@ const collectionPersistence = new IndexeddbPersistence(
 );
 let documentPersistence: IndexeddbPersistence | null = null;
 let worksheetId = '';
+let worksheetController: WorksheetController | null = null;
+let evaluationRequestListener: ((event: Event) => void) | null = null;
 
 async function initializeDocument() {
   await collectionPersistence.whenSynced;
@@ -65,6 +68,18 @@ async function initializeDocument() {
     worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet' as never, {} as never, root.id);
   }
 
+  const worksheetModel = doc.root.children.find(child => child.flavour === 'jabr:worksheet');
+  if (!worksheetModel) throw new Error('The document is missing its worksheet hub.');
+  worksheetController = new WorksheetController({
+    documentId: DOCUMENT_ID,
+    worksheet: worksheetModel as unknown as WorksheetModelLike,
+  });
+  evaluationRequestListener = (event: Event) => {
+    const detail = (event as CustomEvent<{ blockId: string }>).detail;
+    if (detail?.blockId) void worksheetController?.requestEvaluation(detail.blockId);
+  };
+  editorElement.addEventListener('jabr-evaluate-request', evaluationRequestListener);
+
   const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
   editorElement.replaceChildren(std.render());
 
@@ -84,6 +99,8 @@ void initializeDocument().catch(error => {
 });
 
 window.addEventListener('beforeunload', () => {
+  worksheetController?.dispose();
+  if (evaluationRequestListener) editorElement.removeEventListener('jabr-evaluate-request', evaluationRequestListener);
   documentPersistence?.destroy();
   collectionPersistence.destroy();
   collection.dispose();
