@@ -57,6 +57,7 @@ type ControllerOptions = {
  */
 export class WorksheetController {
   private readonly subscriptions = new Map<string, SlotSubscription>();
+  private readonly childrenSubscription: SlotSubscription;
   private readonly revisions = new Map<string, number>();
   private readonly latestRequests = new Map<string, number>();
   private requestSequence = 0;
@@ -76,7 +77,7 @@ export class WorksheetController {
     };
 
     this.syncBlockSubscriptions();
-    this.options.worksheet.childrenUpdated.on(() => this.syncBlockSubscriptions());
+    this.childrenSubscription = this.options.worksheet.childrenUpdated.on(() => this.syncBlockSubscriptions());
   }
 
   private mathBlocks(): MathBlockModelLike[] {
@@ -184,6 +185,7 @@ export class WorksheetController {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.childrenSubscription.dispose();
     for (const subscription of this.subscriptions.values()) subscription.dispose();
     this.subscriptions.clear();
     this.latestRequests.clear();
