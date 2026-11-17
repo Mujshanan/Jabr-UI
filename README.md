@@ -2,23 +2,20 @@
 
 BlockSuite-based calculation-sheet blocks. Jabr UI is intended to remain independently developable and will later be integrated into an AFFiNE-based editor alongside Jabr-CLI.
 
-## Current prototype
+## First prototype: `jabr:math`
 
-This repository contains a minimal BlockSuite host and two custom content blocks:
+This prototype establishes a minimal standalone BlockSuite host and one custom content block:
 
-- `jabr:root`: a small document root used by the standalone prototype.
-- `jabr:text`: an editable plain-text block for testing schema registration, rendering, model updates, and persistence.
-- `jabr:math`: a content block embedding MathLive's `<math-field>`.
+- `jabr:root`: minimal document root required by the standalone host.
+- `jabr:math`: MathLive-powered mathematical fill-in-the-blank block.
 
-The math block currently uses MathLive's fill-in-the-blank mode: the surrounding expression is read-only while named placeholder slots remain editable. Its output inspector displays:
+The math block uses MathLive's fill-in-the-blank mode. The surrounding expression is read-only while named placeholder slots remain editable. The initial expression contains variable, numerator, and denominator placeholders.
 
-- Complete LaTeX from the MathLive field.
-- LaTeX with placeholder commands expanded.
-- Each placeholder identifier and its current LaTeX value.
+The block's canonical document property is `latex`. Rendered DOM and MathLive's internal state are not persisted. On each MathLive input event, the LaTeX source is written to the BlockSuite model. Model updates are reflected back into the field without resetting it when the value is already synchronized.
 
-LaTeX source is stored in the BlockSuite document model; rendered DOM is never persisted. MathLive input updates the BlockSuite model, and external model changes are reflected back into the field. The demo document is persisted locally using IndexedDB through `y-indexeddb`.
+The prototype also exposes a small output inspector showing the complete LaTeX, LaTeX with placeholder commands expanded, and each placeholder's current value.
 
-The root block and demo host are scaffolding for this prototype, not a general block framework.
+The document is persisted locally in the browser using IndexedDB through `y-indexeddb`.
 
 ## Requirements
 
@@ -32,7 +29,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local Vite URL. Use **Add text block** to test plain-text document updates and **Add math block** to insert another expression. Each math block starts with editable numerator, denominator, and variable placeholders. Expand **Inspect MathLive output** beneath a math field to inspect its LaTeX and prompt values.
+Open the local Vite URL. Use **Add math block** to insert another expression. Fill the named placeholders directly in the mathfield. Expand **Inspect MathLive output** to inspect the source and prompt values.
 
 ## Build
 
@@ -41,15 +38,15 @@ pnpm typecheck
 pnpm build
 ```
 
-## Current scope
+## Architecture
 
-- Two custom content block flavours: `jabr:text` and `jabr:math`.
-- MathLive owns mathematical input and LaTeX editing within the placeholders.
-- BlockSuite owns block identity, document state, and updates.
-- Jabr-CLI is not a dependency. The future CLI integration should consume a stable expression/AST contract rather than coupling this block to the parser's internal implementation.
+- BlockSuite owns block identity, document state, updates, and the document tree.
+- MathLive owns mathematical input, placeholder interaction, and LaTeX editing.
+- `jabr:math` stores LaTeX source only; rendered HTML is never stored.
+- Jabr-CLI is deliberately not a dependency. A future integration will define a stable expression/AST contract without coupling the UI block to parser internals.
 
-## Notes
+The standalone root and host are prototype scaffolding, not a general block framework. The eventual AFFiNE integration should register the Jabr math schema and block spec in the host editor's schema and spec collections.
 
-The first prototype uses a small custom BlockSuite root and `EditorHost`, so it can run without AFFiNE. The eventual AFFiNE integration should register the Jabr block specs and schemas in the host editor's existing spec and schema collections.
+## Verification status
 
-This is an initial integration prototype. Dependency installation, type-checking, and browser interaction still need to be run locally before treating it as verified.
+This implementation has been written against the BlockSuite `0.27.5` and MathLive `0.111.4` APIs. Dependency installation, TypeScript checking, production build, and browser interaction still need to be run in a local development environment before this prototype can be considered verified.
