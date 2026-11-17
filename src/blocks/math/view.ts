@@ -208,7 +208,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   };
 
   private requestEvaluation() {
-      this.dispatchEvent(new CustomEvent('jabr-evaluate-request', {
+    this.dispatchEvent(new CustomEvent('jabr-evaluate-request', {
       bubbles: true,
       composed: true,
       detail: { blockId: this.model.id },
