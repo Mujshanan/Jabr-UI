@@ -1,4 +1,4 @@
-import { BlockComponent } from '@blocksuite/lit';
+import { BlockComponent } from '@blocksuite/block-std';
 import type { BlockSpec } from '@blocksuite/block-std';
 import { defineBlockSchema, type SchemaToModel } from '@blocksuite/store';
 import { css, html } from 'lit';
@@ -44,7 +44,7 @@ class JabrRootBlockView extends BlockComponent<JabrRootModel> {
       <article class="jabr-document">
         <h2 class="jabr-document-title">${this.model.title}</h2>
         <div class="jabr-document-content">
-          ${this.renderModelChildren(this.model)}
+          ${this.renderChildren(this.model)}
         </div>
       </article>
     `;
