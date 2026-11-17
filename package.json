@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@blocksuite/block-std": "0.19.5",
-    "@blocksuite/lit": "0.19.5",
     "@blocksuite/store": "0.19.5",
     "lit": "^3.3.1",
     "mathlive": "0.111.4",
@@ -26,6 +25,8 @@
     "vite": "7.3.8"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
