@@ -1,0 +1,31 @@
+{
+  "name": "jabr-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm run typecheck && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@blocksuite/block-std": "0.27.5",
+    "@blocksuite/lit": "0.27.5",
+    "@blocksuite/store": "0.27.5",
+    "lit": "^3.3.1",
+    "mathlive": "0.111.4",
+    "y-indexeddb": "^9.0.12"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "7.3.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
