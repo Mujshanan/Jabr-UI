@@ -14,9 +14,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@blocksuite/block-std": "0.27.5",
-    "@blocksuite/lit": "0.27.5",
-    "@blocksuite/store": "0.27.5",
+    "@blocksuite/block-std": "0.19.5",
+    "@blocksuite/lit": "0.19.5",
+    "@blocksuite/store": "0.19.5",
     "lit": "^3.3.1",
     "mathlive": "0.111.4",
     "y-indexeddb": "^9.0.12"
