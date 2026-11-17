@@ -34,9 +34,9 @@ Run and record:
 - `pnpm test:controller`
 - `pnpm typecheck`
 - `pnpm build`
-- Browser test: enable mock evaluator, press `=` on the default sample, confirm the result is visibly labelled as mock, edit the source and confirm invalidation.
-- Browser test: use Yjs/BlockSuite undo and redo after editing LaTeX; confirm source revision increments and result is cleared.
-- Browser test: confirm result-zone output is read-only and never enters persisted Yjs props.
+- Chromium E2E: enable mock evaluator, press `=` on the default sample, update the actual BlockSuite model, then call the real `doc.undo()`/`doc.redo()` history methods and verify controller revisions and result invalidation.
+- Chromium E2E: confirm result-zone output is read-only and result/diagnostic state is absent from the persisted Yjs block.
+- Chromium E2E: confirm authored LaTeX survives IndexedDB reload while transient result state resets.
 
 ## Explicit non-goals
 
