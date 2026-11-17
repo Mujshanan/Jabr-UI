@@ -17,66 +17,47 @@ The hub block is intentional: BlockSuite 0.19.5 does not allow content blocks to
 
 MathLive is the sole mathematical input editor. It owns structured mathematical editing: fractions, scripts, roots, fences, matrices, cursor movement, selection, and LaTeX serialization. Jabr does not implement a second equation editor or cursor model.
 
-The math block currently provides:
-
-- Named structural placeholders for fractions, square roots, indexed roots, integrals, and 2×2 matrices.
-- A slash shortcut that inserts a structured fraction.
-- Native MathLive Tab / Shift+Tab placeholder traversal and spatial arrow-key navigation.
-- Engineering unit inline shortcuts such as kg, mm, cm, kN, MPa, GPa, mps, and mps2.
-- LaTeX persistence in the BlockSuite model.
+The math block provides named structural placeholders, a slash-to-fraction shortcut, native MathLive placeholder traversal, engineering unit insertion shortcuts, and LaTeX persistence.
 
 ### Dual-zone calculation row
 
-Each math block is presented as an editable input zone, an equals separator, and a result zone:
+Each math block has an editable MathLive source, an equals trigger, a read-only result zone, and an optional display-unit request field. Pressing `=` dispatches an evaluation request to the worksheet controller.
 
-- Left: editable MathLive expression.
-- Middle: equals delimiter.
-- Right: read-only MathLive result display.
-- Far right: optional display-unit request field.
+Computed results, statuses, diagnostics, request IDs, and source revisions remain in an in-memory store outside BlockSuite/Yjs. Only authored LaTeX and the user-selected display unit are persisted.
 
-Pressing `=` dispatches a `jabr-evaluate-request` event to the worksheet controller. The current adapter explicitly reports that Jabr-CLI is not connected; no calculation occurs. Result LaTeX, status, diagnostics, request IDs, and source revisions live in a transient UI store, not in BlockSuite/Yjs. Only authored LaTeX and the requested display unit are persisted.
+## Mock evaluator
 
-### Text blocks
+The standalone prototype includes an opt-in **Enable mock evaluator** control. It uses exact, pre-authored fixtures only; it does not parse expressions, resolve symbols, evaluate arithmetic, or interpret units. The default sample source has a canned mock result. The exact source `MOCK_ERROR` demonstrates an intentional error, while unregistered source strings return an explicit “No mock fixture” error. Disable the mock to restore the unavailable-Jabr-CLI state.
 
-Text blocks are separate BlockSuite content blocks with their own persisted text property. They are created using the Add text block control. Automatic Spacebar conversion between math and prose is not implemented yet.
-
-## Persistence and transient evaluation state
-
-The document schema and block views are registered through the BlockSuite 0.19.5 `BlockStdScope` / `BlockViewExtension` API. The local IndexedDB setup persists both the collection metadata and the worksheet document using y-indexeddb.
-
-The canonical mathematical source is the `latex` property; `displayUnit` is a user-authored presentation preference. Computed result LaTeX, status, diagnostics, request IDs, and source revisions are held in a separate in-memory result store and are not persisted in Yjs.
+Mock results are UI fixtures, not engineering calculations and must never be used for design decisions.
 
 ## Architecture ownership
 
-- BlockSuite owns block identity, schema validation, document order, persistence, and model updates.
-- MathLive owns mathematical input, placeholders, cursor/selection behavior, and LaTeX editing.
-- Jabr-UI owns block presentation, worksheet flow, evaluation-request events, conservative ordered invalidation, transient result state, and result display.
-- Jabr-CLI will later own parsing, assignment/evaluation semantics, variable scope, dependency DAG, quantities, units, and dimensional validation.
-- Jabr-UI must not duplicate calculation or unit semantics while those CLI capabilities are being developed.
+- BlockSuite/Yjs owns document structure, block identity, persistence, collaboration, and undo/redo.
+- MathLive owns structured mathematical editing and LaTeX serialization.
+- Jabr-UI owns presentation, worksheet orchestration, conservative ordered invalidation, transient result state, and rendering.
+- Jabr-CLI will own parsing, assignment semantics, variable scope, dependency DAG, quantities, units, dimensional validation, and actual calculation.
 
-The dependency versions are aligned to the published BlockSuite 0.19.5 packages. This is a standalone prototype API; compatibility with current AFFiNE/BlockSuite versions will be handled during integration.
+Jabr-UI and Jabr-CLI remain independently developable. The future AFFiNE integration should adapt Jabr's worksheet blocks to the host's BlockSuite document model rather than introduce a private Yjs fork.
 
-## Requirements
+## Requirements and run
 
-- Node.js ^20.19.0 || >=22.12.0
-- pnpm 10.34.5
-
-## Run
+- Node.js `^20.19.0 || >=22.12.0`
+- pnpm `10.34.5`
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-Use Add math block or Add text block to append worksheet content. In a math block, use the template toolbar or `/` to insert structured mathematical groups. Press `=` to dispatch an evaluation request. Fill placeholders using MathLive's native Tab / Shift+Tab navigation. Expand Inspect expression and placeholders to inspect the LaTeX and prompt values.
+Use Add math block or Add text block to append worksheet content. Press `=` in a math block to request an evaluation. Enable the mock evaluator to see registered fixture behavior. All actual calculation remains unavailable until Jabr-CLI is connected.
 
-## Build
+## Validation
 
 ```sh
+pnpm test:controller
 pnpm typecheck
 pnpm build
 ```
 
-## Verification
-
-The feature branch has GitHub Actions CI configured to install dependencies, typecheck, and build. Browser interaction testing is still required for placeholder traversal, persistence, read-only result rendering, and text editing. See [development.md](./development.md) for the milestone plan and acceptance criteria.
+See [development.md](./development.md) for the detailed milestone plan and verification checklist.
