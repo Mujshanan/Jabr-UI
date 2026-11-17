@@ -5,7 +5,7 @@ export const JabrMathSchema = defineBlockSchema({
   props: () => ({
     // LaTeX is the canonical editable expression, including named quantity prompts.
     // Each prompt contains a complete quantity (value and unit), not separate fields.
-    latex: String.raw`F = \placeholder[mass]{5\,\mathrm{kg}} \cdot \placeholder[acceleration]{9.81\,\mathrm{m/s^2}}`,
+    latex: String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`,
   }),
   metadata: {
     version: 1,
