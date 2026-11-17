@@ -2,6 +2,7 @@ import { BlockComponent } from '@blocksuite/block-std';
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import type { JabrMathModel } from './schema';
+import { worksheetResults } from '../../worksheet/result-store';
 
 type InlineShortcut = string | { after: string; value: string };
 type InsertOptions = { selectionMode: 'placeholder' };
@@ -170,6 +171,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
 
   private mathField: MathFieldElement | null = null;
   private modelSubscription: { dispose: () => void } | null = null;
+  private resultSubscription: (() => void) | null = null;
   private latexOutput = '';
   private promptOutput: PromptOutput[] = [];
   private templateSequence = 0;
@@ -178,7 +180,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     if (!this.mathField) return;
     const latex = this.mathField.value;
     if (latex !== this.model.latex) {
-      this.doc.updateBlock(this.model, { latex, resultLatex: '', resultStatus: 'idle' });
+      this.doc.updateBlock(this.model, { latex });
     }
     this.refreshOutput();
   };
@@ -206,19 +208,20 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   };
 
   private requestEvaluation() {
-    this.doc.updateBlock(this.model, { resultStatus: 'requested' });
-    this.dispatchEvent(new CustomEvent('jabr-evaluate-request', {
+      this.dispatchEvent(new CustomEvent('jabr-evaluate-request', {
       bubbles: true,
       composed: true,
-      detail: { blockId: this.model.id, latex: this.model.latex },
+      detail: { blockId: this.model.id },
     }));
   }
 
   private get resultStatusLabel() {
-    if (this.model.resultLatex) return 'Result';
-    switch (this.model.resultStatus) {
-      case 'requested': return 'Evaluation requested · CLI adapter pending';
-      case 'error': return 'Evaluation error';
+    const state = worksheetResults.get(this.model.id);
+    switch (state.status) {
+      case 'pending': return 'Evaluating…';
+      case 'success': return 'Result';
+      case 'error': return state.diagnostic || 'Evaluation error';
+      case 'unavailable': return state.diagnostic || 'CLI evaluator unavailable';
       default: return 'Press = to request evaluation';
     }
   }
@@ -240,6 +243,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     if (!field || this.mathField === field) return;
     this.detachMathField();
     this.mathField = field;
+    this.resultSubscription = worksheetResults.subscribe(this.model.id, () => this.requestUpdate());
     field.inlineShortcuts = { ...field.inlineShortcuts, ...UNIT_SHORTCUTS };
     field.value = this.model.latex;
     field.addEventListener('input', this.onMathInput);
@@ -252,6 +256,8 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     this.mathField?.removeEventListener('input', this.onMathInput);
     this.mathField?.removeEventListener('keydown', this.onMathKeydown, true);
     this.mathField = null;
+    this.resultSubscription?.();
+    this.resultSubscription = null;
     this.modelSubscription?.dispose();
     this.modelSubscription = null;
   }
@@ -316,7 +322,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
           <span class="math-equals" aria-hidden="true">=</span>
           <div class="result-zone">
             <div class="result-main">
-              <math-field class="jabr-result-field" read-only .value=${this.model.resultLatex}
+              <math-field class="jabr-result-field" read-only .value=${worksheetResults.get(this.model.id).resultLatex}
                 aria-label="Read-only calculation result"></math-field>
               <span class="result-status" role="status">${this.resultStatusLabel}</span>
             </div>
