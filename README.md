@@ -45,8 +45,8 @@ pnpm build
 - `jabr:math` stores LaTeX source only; rendered HTML is never stored.
 - Jabr-CLI is deliberately not a dependency. A future integration will define a stable expression/AST contract without coupling the UI block to parser internals.
 
-The standalone root and host are prototype scaffolding, not a general block framework. The eventual AFFiNE integration should register the Jabr math schema and block spec in the host editor's schema and spec collections.
+The standalone root and host are prototype scaffolding, not a general block framework. The first implementation pins BlockSuite `0.19.5`, which uses the standalone `Doc` / `EditorHost` / `BlockSpec` API. This keeps the prototype small and independently runnable; compatibility with the newer BlockSuite extension API used by current AFFiNE must be handled explicitly during final integration.
 
 ## Verification status
 
-This implementation has been written against the BlockSuite `0.27.5` and MathLive `0.111.4` APIs. Dependency installation, TypeScript checking, production build, and browser interaction still need to be run in a local development environment before this prototype can be considered verified.
+The source is written against BlockSuite `0.19.5` and MathLive `0.111.4`. Dependency installation, TypeScript checking, production build, and browser interaction still need to be run in a local development environment before this prototype can be considered verified.
