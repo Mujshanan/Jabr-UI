@@ -6,24 +6,24 @@ import { EditorHost } from '@blocksuite/lit';
 import { DocCollection, Schema } from '@blocksuite/store';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { JabrMathSchema } from './blocks/math';
-import { JabrTextSchema } from './blocks/text';
 import { JabrRootSchema } from './editor/root';
 import { JabrBlockSpecs } from './editor/specs';
 
 const DATABASE_NAME = 'jabr-ui-math-block-v1';
 const DEFAULT_LATEX = String.raw`\placeholder[variable]{} = \frac{\placeholder[numerator]{}}{\placeholder[denominator]{}}`;
 
-const schema = new Schema().register(JabrRootSchema).register(JabrTextSchema).register(JabrMathSchema);
+const schema = new Schema()
+  .register(JabrRootSchema)
+  .register(JabrMathSchema);
 const collection = new DocCollection({ schema });
 collection.meta.initialize();
 
 const doc = collection.createDoc();
 const editorContainer = document.querySelector<HTMLDivElement>('#editor');
 const addMathButton = document.querySelector<HTMLButtonElement>('#add-math');
-const addTextButton = document.querySelector<HTMLButtonElement>('#add-text');
 const saveStatus = document.querySelector<HTMLSpanElement>('#save-status');
 
-if (!editorContainer || !addMathButton || !addTextButton || !saveStatus) {
+if (!editorContainer || !addMathButton || !saveStatus) {
   throw new Error('The Jabr UI application shell is incomplete.');
 }
 
@@ -42,7 +42,6 @@ function ensureInitialDocument() {
 
   doc.load(() => {
     rootId = doc.addBlock('jabr:root', { title: 'Untitled calculation' });
-    doc.addBlock('jabr:text', {}, rootId);
     doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, rootId);
   });
 }
@@ -52,11 +51,6 @@ persistence.on('synced', () => {
   doc.load();
   ensureInitialDocument();
   saveStatus.textContent = 'Local document ready';
-});
-
-addTextButton.addEventListener('click', () => {
-  if (!rootId) return;
-  doc.addBlock('jabr:text', {}, rootId);
 });
 
 addMathButton.addEventListener('click', () => {
