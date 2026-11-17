@@ -5,9 +5,7 @@ export const JabrMathSchema = defineBlockSchema({
   props: () => ({
     // LaTeX is the canonical editable source.
     latex: String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`,
-    // Result fields are presentation state; the CLI will populate them later.
-    resultLatex: '',
-    resultStatus: 'idle',
+    // Results are transient controller state, never persisted in Yjs.
     displayUnit: '',
   }),
   metadata: {
