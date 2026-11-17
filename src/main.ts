@@ -10,7 +10,7 @@ import { JabrRootSchema } from './editor/root';
 import { JabrBlockSpecs } from './editor/specs';
 
 const DATABASE_NAME = 'jabr-ui-math-block-v1';
-const DEFAULT_LATEX = String.raw`F = \placeholder[mass]{5\,\mathrm{kg}} \cdot \placeholder[acceleration]{9.81\,\mathrm{m/s^2}}`;
+const DEFAULT_LATEX = String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`;
 
 const schema = new Schema()
   .register(JabrRootSchema)
