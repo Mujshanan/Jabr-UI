@@ -179,9 +179,10 @@ The event is handled by the worksheet controller. The controller currently retur
 5. [x] Keep result LaTeX, status, diagnostics, request IDs, and source revisions in a transient result store outside Yjs.
 6. [x] Define versioned, adapter-independent evaluation request/response types and reject stale or mismatched responses.
 7. [x] Route the `=` request event through the controller.
-8. [ ] Add deterministic mock evaluator fixtures and automated race/undo-redo tests.
-9. [ ] Handle block reordering and document-wide evaluation snapshots.
-10. [ ] Add host-level keyboard routing for moving between blocks and creating the next block at a true boundary.
+8. [x] Add regression tests for ordered invalidation, programmatic `propsUpdated` undo/redo replay, stale async responses, display-unit isolation, and removed-block cleanup.
+9. [ ] Add a deterministic interactive mock evaluator and an end-to-end Yjs UndoManager integration test.
+10. [ ] Handle block reordering and document-wide evaluation snapshots.
+11. [ ] Add host-level keyboard routing for moving between blocks and creating the next block at a true boundary.
 
 The default adapter reports that Jabr-CLI is not connected. No expression parsing, symbol resolution, dependency graph, quantity handling, or calculation is performed in Jabr-UI.
 
@@ -298,7 +299,8 @@ Record commands, environment, and results in the pull request. Do not mark the m
 - [x] Basic persisted text block.
 - [x] Worksheet controller source-change observation and ordered cascade invalidation (CLI evaluator remains unavailable).
 - [x] Transient result store and stale-response correlation.
-- [ ] Deterministic mock evaluator fixtures and automated undo/redo/race tests.
+- [x] Controller regression tests for cascade invalidation, programmatic replay events, and stale responses.
+- [ ] Interactive mock evaluator and end-to-end Yjs UndoManager test.
 - [ ] Dependency DAG and quantity engine in Jabr-CLI.
 - [ ] Math/text switching and continuous worksheet flow.
 
