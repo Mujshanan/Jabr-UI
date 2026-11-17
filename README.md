@@ -21,7 +21,9 @@ Each named placeholder represents a complete quantity, including its numeric exp
 
 Prompt IDs are semantic identifiers (`mass`, `acceleration`, `force`) rather than display labels. This allows Jabr to associate each slot with an expected physical dimension, show a relevant input hint, and later validate the entered quantity.
 
-**Current limitation:** MathLive stores and edits the quantity as LaTeX. This prototype does not yet parse units, convert quantities, or check dimensional consistency. Those behaviors belong in a separate Jabr quantity/unit layer and eventually the Jabr-CLI calculation contract. MathLive is the structured input surface, not the unit engine.
+The MathLive field also defines a small set of engineering unit inline shortcuts. After a number or space, typing `kg`, `mm`, `cm`, `kN`, `MPa`, `GPa`, `mps`, or `mps2` inserts an upright unit expression. For example, `9.81 mps2` inserts `9.81\,\mathrm{m/s^2}`. Tab and Shift+Tab move between named prompts using MathLive's placeholder navigation.
+
+**Current limitation:** the shortcuts only improve unit notation and readability. This prototype does not yet parse units, convert quantities, or check dimensional consistency. Those behaviors belong in a separate Jabr quantity/unit layer and eventually the Jabr-CLI calculation contract. MathLive is the structured input surface, not the unit engine.
 
 ### Persistence
 
@@ -41,7 +43,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local Vite URL. Use **Add math block** to insert another expression. Edit anywhere in the equation; each named placeholder accepts a complete mathematical quantity, including its unit. Expand **Inspect expression inputs** to inspect the LaTeX and prompt values.
+Open the local Vite URL. Use **Add math block** to insert another expression. Edit anywhere in the equation; each named placeholder accepts a complete mathematical quantity, including its unit. Use Tab / Shift+Tab to move between placeholders. Expand **Inspect expression inputs** to inspect the LaTeX and prompt values.
 
 ## Build
 
