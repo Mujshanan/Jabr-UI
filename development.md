@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the implementation plan for turning Jabr's MathLive-backed expression block into a Mathcad-inspired calculation worksheet. The immediate milestone is **structured MathLive placeholders and Mathcad-style mathematical entry**. The worksheet controller and dual-zone input/result presentation follow on top of that foundation.
+This document defines the implementation plan for turning Jabr's MathLive-backed expression block into a Mathcad-inspired calculation worksheet. The immediate milestones are **structured MathLive placeholders, the dual-zone math block, and the worksheet block hierarchy**. The worksheet controller and CLI adapter follow on top of these block foundations.
 
 The goal is to reproduce the interaction model, not Mathcad's proprietary implementation. MathLive remains the sole mathematical input editor. Jabr owns the worksheet, block lifecycle, evaluation requests, and result presentation.
 
@@ -44,7 +44,7 @@ The worksheet distinguishes definition from evaluation.
 
 ### 4. Continuous worksheet flow
 
-- A document is an ordered sequence of content blocks.
+- A document is an ordered sequence of content blocks under a worksheet hub block. The root contains the worksheet hub; the hub contains math and text content blocks.
 - The host owns insertion, deletion, focus transfer, and block creation.
 - Enter/Tab at a worksheet boundary may create or focus the next block, but must not interfere with MathLive's internal placeholder traversal.
 - Text and math remain distinct block types. A future smart-switch interaction may convert a fresh block between them without losing typed content.
@@ -59,7 +59,7 @@ Jabr-UI owns:
 - The MathLive component configuration and mathematical input UX.
 - Math/text block presentation and host-level keyboard routing.
 - The worksheet controller and ordered block lifecycle.
-- A dual-zone block view: editable input on the left, read-only result on the right.
+- A dual-zone block view: editable input on the left, read-only result on the right, and a display-unit request field.
 - A separate result-unit override control, once supported by the CLI quantity contract.
 - Rendering of CLI evaluation status, diagnostics, and serialized results.
 
@@ -125,7 +125,7 @@ The controller should identify blocks by stable BlockSuite IDs. The CLI should r
 
 **Acceptance:** the ownership split and data exchange are documented; no cross-repository runtime dependency is introduced prematurely.
 
-### Milestone 1 — MathLive placeholders and structured entry (current priority)
+### Milestone 1 — MathLive placeholders and structured entry
 
 1. Add reusable, named placeholder templates for common engineering/math structures.
 2. Add a compact insertion toolbar for fraction, square root, integral, and matrix templates.
@@ -157,7 +157,7 @@ The controller should identify blocks by stable BlockSuite IDs. The CLI should r
 
 **Acceptance:** input conventions are documented, keyboard behavior is deterministic, and the UI does not claim to evaluate expressions locally.
 
-### Milestone 3 — Dual-zone math block
+### Milestone 3 — Dual-zone math block (UI foundation implemented)
 
 1. Refactor the math block into an inline/flexible two-zone layout.
 2. Keep the left MathLive field editable.
