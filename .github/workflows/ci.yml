@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   validate:
-    name: Typecheck and production build
+    name: Unit tests, browser integration, typecheck and build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -31,8 +31,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Worksheet controller tests
         run: pnpm test:controller
+
+      - name: BlockSuite browser integration tests
+        run: pnpm test:e2e
 
       - name: Typecheck and build
         run: pnpm build
