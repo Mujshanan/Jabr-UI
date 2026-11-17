@@ -4,7 +4,7 @@ export const JabrMathSchema = defineBlockSchema({
   flavour: 'jabr:math',
   props: () => ({
     // LaTeX is the canonical editable source.
-    latex: String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`,
+    latex: String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`,
     // Result fields are presentation state; the CLI will populate them later.
     resultLatex: '',
     resultStatus: 'idle',
