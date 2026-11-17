@@ -1,6 +1,6 @@
 import { BlockComponent } from '@blocksuite/lit';
+import { css, html } from 'lit';
 import { defineBlockSchema, type SchemaToModel } from '@blocksuite/store';
-import { html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { literal } from 'lit/static-html.js';
 import type { BlockSpec } from '@blocksuite/block-std';
@@ -21,6 +21,24 @@ type JabrRootModel = SchemaToModel<typeof JabrRootSchema>;
 
 @customElement('jabr-root-block')
 class JabrRootBlockView extends BlockComponent<JabrRootModel> {
+  static override styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
+
+    .jabr-document-title {
+      margin: 0 0 30px;
+      color: #303846;
+      font: 600 20px/1.3 Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .jabr-document-content {
+      display: grid;
+      gap: 18px;
+    }
+  `;
+
   override render() {
     return html`
       <article class="jabr-document">

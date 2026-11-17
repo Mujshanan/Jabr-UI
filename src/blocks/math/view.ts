@@ -1,5 +1,5 @@
 import { BlockComponent } from '@blocksuite/lit';
-import { html } from 'lit';
+import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import type { JabrMathModel } from './schema';
 
@@ -9,6 +9,47 @@ type MathFieldElement = HTMLElement & {
 
 @customElement('jabr-math-block')
 export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
+  static override styles = css`
+    :host {
+      display: block;
+      min-width: 0;
+    }
+
+    .jabr-math-block {
+      min-height: 72px;
+      padding: 14px 16px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+
+    .jabr-math-block:focus-within {
+      border-color: #cbd5e1;
+      background: #fbfcfe;
+    }
+
+    .jabr-math-label {
+      margin-bottom: 10px;
+      color: #94a0af;
+      font: 700 10px/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.12em;
+    }
+
+    .jabr-math-field {
+      display: block;
+      width: 100%;
+      min-height: 36px;
+      padding: 3px 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font-size: 25px;
+      --caret-color: #2563eb;
+      --selection-background-color: #dbeafe;
+      --contains-highlight-background-color: #eff6ff;
+    }
+  `;
+
   private mathField: MathFieldElement | null = null;
   private modelSubscription: { dispose: () => void } | null = null;
 
