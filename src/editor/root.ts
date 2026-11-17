@@ -1,9 +1,9 @@
 import { BlockComponent } from '@blocksuite/lit';
-import { css, html } from 'lit';
+import type { BlockSpec } from '@blocksuite/block-std';
 import { defineBlockSchema, type SchemaToModel } from '@blocksuite/store';
+import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { literal } from 'lit/static-html.js';
-import type { BlockSpec } from '@blocksuite/block-std';
 
 export const JabrRootSchema = defineBlockSchema({
   flavour: 'jabr:root',
@@ -13,7 +13,7 @@ export const JabrRootSchema = defineBlockSchema({
   metadata: {
     version: 1,
     role: 'root',
-    children: ['jabr:text', 'jabr:math'],
+    children: ['jabr:math'],
   },
 });
 
