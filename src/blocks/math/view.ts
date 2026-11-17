@@ -61,19 +61,19 @@ const MATH_TEMPLATES: MathTemplate[] = [
   {
     id: 'indexed-root',
     label: 'Indexed root',
-    latex: String.raw`\sqrt[\placeholder[root-index]{}]{\placeholder[root-radicand]{}}`,
+    latex: String.raw`\sqrt[\placeholder[rootindex]{}]{\placeholder[rootradicand]{}}`,
     description: 'Root index and radicand',
   },
   {
     id: 'integral',
     label: 'Integral',
-    latex: String.raw`\int_{\placeholder[lower-limit]{}}^{\placeholder[upper-limit]{}}\placeholder[integrand]{}\,d\placeholder[integration-variable]{}`,
+    latex: String.raw`\int_{\placeholder[lowerlimit]{}}^{\placeholder[upperlimit]{}}\placeholder[integrand]{}\,d\placeholder[integrationvariable]{}`,
     description: 'Lower limit, upper limit, integrand, and variable',
   },
   {
     id: 'matrix-2x2',
     label: '2×2 matrix',
-    latex: String.raw`\begin{bmatrix}\placeholder[matrix-1-1]{} & \placeholder[matrix-1-2]{}\\\placeholder[matrix-2-1]{} & \placeholder[matrix-2-2]{}\end{bmatrix}`,
+    latex: String.raw`\begin{bmatrix}\placeholder[matrix11]{} & \placeholder[matrix12]{}\\\placeholder[matrix21]{} & \placeholder[matrix22]{}\end{bmatrix}`,
     description: 'Four independently editable cells',
   },
 ];
@@ -229,7 +229,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       sequence += 1;
       insertedPromptIds = [];
       latex = template.latex.replace(/\\placeholder\[([^\]]+)\]/g, (_match, id: string) => {
-        const uniqueId = `${id}-${sequence}`;
+        const uniqueId = `${id}p${sequence}`;
         insertedPromptIds.push(uniqueId);
         return `\\placeholder[${uniqueId}]`;
       });
