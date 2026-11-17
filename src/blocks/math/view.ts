@@ -12,6 +12,12 @@ type MathFieldElement = HTMLElement & {
 
 type PromptOutput = { id: string; value: string };
 
+const UNIT_PROMPT_HINTS: Record<string, string> = {
+  'mass-unit': 'Mass unit · e.g. kg, g, tonne',
+  'acceleration-unit': 'Acceleration unit · e.g. m/s², mm/s², g₀',
+  'force-unit': 'Force unit · e.g. N, kN, lbf',
+};
+
 @customElement('jabr-math-block')
 export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   static override styles = css`
@@ -43,7 +49,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     .jabr-math-field {
       display: block;
       width: 100%;
-      min-height: 36px;
+      min-height: 42px;
       padding: 3px 0;
       border: 0;
       outline: 0;
@@ -71,7 +77,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
 
     .math-output dl {
       display: grid;
-      grid-template-columns: minmax(100px, 0.25fr) 1fr;
+      grid-template-columns: minmax(120px, 0.3fr) 1fr;
       gap: 5px 12px;
       margin: 10px 0 0;
     }
@@ -106,7 +112,6 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   private mathField: MathFieldElement | null = null;
   private modelSubscription: { dispose: () => void } | null = null;
   private latexOutput = '';
-  private expandedOutput = '';
   private promptOutput: PromptOutput[] = [];
 
   private readonly onMathInput = () => {
@@ -163,7 +168,6 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     if (!this.mathField) return;
 
     this.latexOutput = this.mathField.getValue('latex');
-    this.expandedOutput = this.mathField.getValue('latex-without-placeholders');
     this.promptOutput = this.mathField.getPrompts().map(id => ({
       id,
       value: this.mathField?.getPromptValue(id, 'latex') ?? '',
@@ -174,31 +178,34 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   override render() {
     return html`
       <section class="jabr-math-block" aria-label="Mathematical expression">
-        <div class="jabr-math-label">MATH / MATHLIVE</div>
+        <div class="jabr-math-label">MATH / MATHLIVE · EDITABLE EXPRESSION</div>
         <math-field
           class="jabr-math-field"
-          readonly
           math-virtual-keyboard-policy="manual"
           smart-fence
           smart-mode
+          smart-superscript
           placeholder="Enter an expression"
-          aria-label="Fill mathematical placeholders"
+          aria-label="Mathematical expression editor"
         ></math-field>
         <details class="math-output">
-          <summary>Inspect MathLive output</summary>
-          <h4>Complete LaTeX</h4>
+          <summary>Inspect expression inputs</summary>
+          <h4>LaTeX source</h4>
           <pre>${this.latexOutput || 'Waiting for MathLive…'}</pre>
-          <h4>LaTeX without placeholders</h4>
-          <pre>${this.expandedOutput || '—'}</pre>
-          <h4>Prompt values</h4>
+          <h4>Placeholder values</h4>
           ${this.promptOutput.length
             ? html`<dl>
                 ${this.promptOutput.map(prompt => html`
                   <dt>${prompt.id}</dt>
-                  <dd>${prompt.value || '(empty)'}</dd>
+                  <dd>
+                    ${prompt.value || '(empty)'}
+                    ${UNIT_PROMPT_HINTS[prompt.id]
+                      ? html`<span> — ${UNIT_PROMPT_HINTS[prompt.id]}</span>`
+                      : ''}
+                  </dd>
                 `)}
               </dl>`
-            : html`<p>No prompt placeholders found.</p>`}
+            : html`<p>No input placeholders. Type directly into the expression.</p>`}
         </details>
       </section>
     `;
