@@ -106,11 +106,12 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
         <div class="jabr-math-label">MATH</div>
         <math-field
           class="jabr-math-field"
+          readonly
           math-virtual-keyboard-policy="manual"
           smart-fence
           smart-mode
           placeholder="Enter an expression"
-          aria-label="Edit mathematical expression"
+          aria-label="Fill mathematical placeholders"
         ></math-field>
       </section>
     `;
