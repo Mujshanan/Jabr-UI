@@ -32,6 +32,12 @@ if (!editorContainer || !addMathButton || !addTextButton || !saveStatus) {
   throw new Error('The Jabr UI application shell is incomplete.');
 }
 
+const editorElement = editorContainer;
+const addMathControl = addMathButton;
+const addTextControl = addTextButton;
+const statusElement = saveStatus;
+
+
 const collectionPersistence = new IndexeddbPersistence(
   `${DATABASE_NAME}:collection`,
   collection.doc
@@ -60,21 +66,21 @@ async function initializeDocument() {
   }
 
   const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
-  editorContainer.replaceChildren(std.render());
+  editorElement.replaceChildren(std.render());
 
-  addMathButton.addEventListener('click', () => {
+  addMathControl.addEventListener('click', () => {
     doc.addBlock('jabr:math' as never, { latex: DEFAULT_LATEX } as never, worksheetId);
   });
-  addTextButton.addEventListener('click', () => {
+  addTextControl.addEventListener('click', () => {
     doc.addBlock('jabr:text' as never, { text: '' } as never, worksheetId);
   });
 
-  saveStatus.textContent = 'Local document ready';
+  statusElement.textContent = 'Local document ready';
 }
 
 void initializeDocument().catch(error => {
   console.error('Failed to initialize Jabr worksheet:', error);
-  saveStatus.textContent = 'Could not load local document';
+  statusElement.textContent = 'Could not load local document';
 });
 
 window.addEventListener('beforeunload', () => {
