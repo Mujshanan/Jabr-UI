@@ -1,4 +1,4 @@
-import { BlockComponent } from '@blocksuite/lit';
+import { BlockComponent } from '@blocksuite/block-std';
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import type { JabrMathModel } from './schema';
