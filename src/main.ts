@@ -51,22 +51,22 @@ async function initializeDocument() {
   doc.load();
 
   if (!doc.root) {
-    const rootId = doc.addBlock('jabr:root', { title: 'Untitled calculation' });
-    worksheetId = doc.addBlock('jabr:worksheet', {}, rootId);
-    doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, worksheetId);
+    const rootId = doc.addBlock('jabr:root' as never, { title: 'Untitled calculation' } as never);
+    worksheetId = doc.addBlock('jabr:worksheet' as never, {} as never, rootId);
+    doc.addBlock('jabr:math' as never, { latex: DEFAULT_LATEX } as never, worksheetId);
   } else {
     const root = doc.root;
-    worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet', {}, root.id);
+    worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet' as never, {} as never, root.id);
   }
 
   const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
   editorContainer.replaceChildren(std.render());
 
   addMathButton.addEventListener('click', () => {
-    doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, worksheetId);
+    doc.addBlock('jabr:math' as never, { latex: DEFAULT_LATEX } as never, worksheetId);
   });
   addTextButton.addEventListener('click', () => {
-    doc.addBlock('jabr:text', { text: '' }, worksheetId);
+    doc.addBlock('jabr:text' as never, { text: '' } as never, worksheetId);
   });
 
   saveStatus.textContent = 'Local document ready';
