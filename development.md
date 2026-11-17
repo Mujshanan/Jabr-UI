@@ -159,13 +159,15 @@ The controller should identify blocks by stable BlockSuite IDs. The CLI should r
 
 ### Milestone 3 — Dual-zone math block (UI foundation implemented)
 
-1. Refactor the math block into an inline/flexible two-zone layout.
-2. Keep the left MathLive field editable.
-3. Render the right result zone using read-only MathLive or a safe typesetting renderer.
-4. Provide pending, empty, success, and error states.
-5. Add a separate unit-override input at the result edge.
-6. Keep the original input unchanged when the display unit changes.
-7. Make the result zone accessible and visually secondary to the input.
+1. [x] Refactor the math block into an inline input / equals / result layout.
+2. [x] Keep the left MathLive field editable.
+3. [x] Render the right result zone with a read-only MathLive field.
+4. [x] Add initial empty, requested, and error status presentation.
+5. [x] Add a separate unit-override input at the result edge.
+6. [x] Keep the source expression unchanged when the display unit changes.
+7. [x] Dispatch a `jabr-evaluate-request` event when the user presses `=`.
+
+The event currently marks the block as requested; it does not evaluate the expression. The result and display-unit properties are ready for a future worksheet controller and Jabr-CLI adapter.
 
 **Acceptance:** users can distinguish source from result; results cannot be edited as source; unit overrides do not mutate the input expression.
 
@@ -196,11 +198,11 @@ The controller should identify blocks by stable BlockSuite IDs. The CLI should r
 
 ### Milestone 6 — Text/math blocks and continuous flow
 
-1. Define a small text block schema and view.
-2. Add explicit host-level block type switching for a fresh block.
-3. Preserve typed text during conversion.
-4. Implement Enter/Tab boundary behavior and focus transfer.
-5. Ensure document order and persistence remain stable.
+1. [x] Define a small text block schema and editable view.
+2. [ ] Add explicit host-level block type switching for a fresh block.
+3. [ ] Preserve typed text during conversion.
+4. [ ] Implement Enter/Tab boundary behavior and focus transfer.
+5. [ ] Verify document order and persistence remain stable.
 
 **Acceptance:** users can create and navigate a continuous worksheet without interfering with MathLive's internal structural navigation.
 
@@ -285,7 +287,9 @@ Record commands, environment, and results in the pull request. Do not mark the m
 - [x] Reusable structural placeholder templates (implementation present; browser verification pending).
 - [x] Mathcad-style fraction insertion shortcut (implementation present; browser verification pending).
 - [ ] Template keyboard/navigation verification.
-- [ ] Dual-zone input/result block.
+- [x] Dual-zone input/result block (presentation and request event only; no calculation).
+- [x] Root → worksheet hub → math/text content-block hierarchy.
+- [x] Basic persisted text block.
 - [ ] Worksheet controller and CLI evaluation adapter.
 - [ ] Dependency DAG and quantity engine in Jabr-CLI.
 - [ ] Math/text switching and continuous worksheet flow.
