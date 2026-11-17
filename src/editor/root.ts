@@ -13,7 +13,7 @@ export const JabrRootSchema = defineBlockSchema({
   metadata: {
     version: 1,
     role: 'root',
-    children: ['jabr:math'],
+    children: ['jabr:text', 'jabr:math'],
   },
 });
 
