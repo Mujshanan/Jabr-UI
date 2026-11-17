@@ -9,17 +9,19 @@ This prototype establishes a minimal standalone BlockSuite host and one custom c
 - `jabr:root`: minimal document root required by the standalone host.
 - `jabr:math`: MathLive-powered editable mathematical expression.
 
-The math block is a normal editable MathLive field, not a read-only expression with only a few active slots. Users can type and navigate through the complete expression. MathLive owns the structured mathematical editing experience: fractions, scripts, roots, fences, cursor movement, selection, and LaTeX serialization.
+The math block is a normal editable MathLive field, not a read-only expression with only a few active slots. Users can type and navigate through the complete expression. MathLive owns structured mathematical editing: fractions, scripts, roots, fences, cursor movement, selection, and LaTeX serialization.
 
-### Placeholder and quantity-input direction
+### Mathcad-style quantity placeholders
 
-The starter expression demonstrates a quantity-oriented pattern:
+The starter expression is:
 
-`F = [mass value] [mass unit] · [acceleration value] [acceleration unit]`
+`F = [mass] · [acceleration]`
 
-Each slot is a named MathLive prompt. Value and unit prompts are deliberately separate so Jabr can later attach different input rules to them. For example, a mass value can accept a numeric expression while its unit slot is restricted to mass units. The prompt IDs are stable semantic identifiers, not display labels.
+Each named placeholder represents a complete quantity, including its numeric expression and unit. For example, the mass prompt can contain `5 kg`, and the acceleration prompt can contain `9.81 m/s²`. A quantity is not split into separate number and unit boxes.
 
-**Current limitation:** the unit prompts are editable LaTeX slots only. This prototype does not yet parse unit strings, convert quantities, or check dimensional consistency. Those behaviors belong in a separate Jabr quantity/unit layer and eventually the Jabr-CLI calculation contract; MathLive itself is the editor, not the unit engine.
+Prompt IDs are semantic identifiers (`mass`, `acceleration`, `force`) rather than display labels. This allows Jabr to associate each slot with an expected physical dimension, show a relevant input hint, and later validate the entered quantity.
+
+**Current limitation:** MathLive stores and edits the quantity as LaTeX. This prototype does not yet parse units, convert quantities, or check dimensional consistency. Those behaviors belong in a separate Jabr quantity/unit layer and eventually the Jabr-CLI calculation contract. MathLive is the structured input surface, not the unit engine.
 
 ### Persistence
 
@@ -39,7 +41,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local Vite URL. Use **Add math block** to insert another expression. Edit anywhere in the equation; use the named value and unit prompts as the starting quantity-input example. Expand **Inspect expression inputs** to inspect the LaTeX and prompt values.
+Open the local Vite URL. Use **Add math block** to insert another expression. Edit anywhere in the equation; each named placeholder accepts a complete mathematical quantity, including its unit. Expand **Inspect expression inputs** to inspect the LaTeX and prompt values.
 
 ## Build
 
@@ -53,7 +55,7 @@ pnpm build
 - BlockSuite owns block identity, document state, updates, and the document tree.
 - MathLive owns mathematical input, placeholder interaction, cursor/selection behavior, and LaTeX editing.
 - `jabr:math` stores LaTeX source only; rendered HTML is never stored.
-- Jabr-specific quantity metadata, unit catalog, unit conversion, and dimensional validation are intentionally separate from MathLive.
+- Jabr-specific quantity parsing, unit catalog, conversion, and dimensional validation are separate from MathLive.
 - Jabr-CLI is deliberately not a dependency. A future integration will define a stable expression/AST and quantity contract without coupling the UI block to parser internals.
 
 The standalone root and host are prototype scaffolding, not a general block framework. The first implementation pins BlockSuite `0.19.5`, which uses the standalone `Doc` / `EditorHost` / `BlockSpec` API. This keeps the prototype small and independently runnable; compatibility with the newer BlockSuite extension API used by current AFFiNE must be handled explicitly during final integration.
