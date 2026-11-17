@@ -31,5 +31,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Worksheet controller tests
+        run: pnpm test:controller
+
       - name: Typecheck and build
         run: pnpm build
