@@ -3,8 +3,11 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import type { JabrMathModel } from './schema';
 
+type InlineShortcut = string | { after: string; value: string };
+
 type MathFieldElement = HTMLElement & {
   value: string;
+  inlineShortcuts: Record<string, InlineShortcut>;
   getValue(format?: string): string;
   getPrompts(): string[];
   getPromptValue(id: string, format?: string): string;
@@ -13,9 +16,26 @@ type MathFieldElement = HTMLElement & {
 type PromptOutput = { id: string; value: string };
 
 const QUANTITY_PROMPT_HINTS: Record<string, string> = {
-  mass: 'Quantity input · expected dimension: mass · e.g. 5 kg',
-  acceleration: 'Quantity input · expected dimension: acceleration · e.g. 9.81 m/s²',
-  force: 'Quantity input · expected dimension: force · e.g. 12 kN',
+  mass: 'Expected dimension: mass · e.g. 5 kg',
+  acceleration: 'Expected dimension: acceleration · e.g. 9.81 m/s²',
+  force: 'Expected dimension: force · e.g. 12 kN',
+};
+
+// These shortcuts typeset common engineering units upright after a number or space.
+// They are input conveniences only; dimensional validation is handled outside MathLive.
+const UNIT_SHORTCUTS: Record<string, InlineShortcut> = {
+  kg: { after: 'digit | space', value: String.raw`\mathrm{kg}` },
+  mm: { after: 'digit | space', value: String.raw`\mathrm{mm}` },
+  cm: { after: 'digit | space', value: String.raw`\mathrm{cm}` },
+  km: { after: 'digit | space', value: String.raw`\mathrm{km}` },
+  kN: { after: 'digit | space', value: String.raw`\mathrm{kN}` },
+  MN: { after: 'digit | space', value: String.raw`\mathrm{MN}` },
+  MPa: { after: 'digit | space', value: String.raw`\mathrm{MPa}` },
+  GPa: { after: 'digit | space', value: String.raw`\mathrm{GPa}` },
+  kPa: { after: 'digit | space', value: String.raw`\mathrm{kPa}` },
+  mps: { after: 'digit | space', value: String.raw`\mathrm{m/s}` },
+  mps2: { after: 'digit | space', value: String.raw`\mathrm{m/s^2}` },
+  mmps2: { after: 'digit | space', value: String.raw`\mathrm{mm/s^2}` },
 };
 
 @customElement('jabr-math-block')
@@ -40,10 +60,16 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     }
 
     .jabr-math-label {
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       color: #94a0af;
       font: 700 10px/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
       letter-spacing: 0.12em;
+    }
+
+    .jabr-math-help {
+      margin-bottom: 8px;
+      color: #94a3b8;
+      font: 11px/1.4 Inter, ui-sans-serif, system-ui, sans-serif;
     }
 
     .jabr-math-field {
@@ -144,6 +170,10 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
 
     this.detachMathField();
     this.mathField = field;
+    field.inlineShortcuts = {
+      ...field.inlineShortcuts,
+      ...UNIT_SHORTCUTS,
+    };
     field.value = this.model.latex;
     field.addEventListener('input', this.onMathInput);
     this.modelSubscription = this.model.propsUpdated.on(this.onModelUpdated);
@@ -179,6 +209,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     return html`
       <section class="jabr-math-block" aria-label="Mathematical expression">
         <div class="jabr-math-label">MATH / MATHLIVE · EDITABLE EXPRESSION</div>
+        <div class="jabr-math-help">Tab / Shift+Tab: move between inputs · Type unit shortcuts after a value (kg, kN, MPa, mps2)</div>
         <math-field
           class="jabr-math-field"
           math-virtual-keyboard-policy="manual"
