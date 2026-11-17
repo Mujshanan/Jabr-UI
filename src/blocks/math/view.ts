@@ -5,7 +5,12 @@ import type { JabrMathModel } from './schema';
 
 type MathFieldElement = HTMLElement & {
   value: string;
+  getValue(format?: string): string;
+  getPrompts(): string[];
+  getPromptValue(id: string, format?: string): string;
 };
+
+type PromptOutput = { id: string; value: string };
 
 @customElement('jabr-math-block')
 export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
@@ -48,10 +53,61 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       --selection-background-color: #dbeafe;
       --contains-highlight-background-color: #eff6ff;
     }
+
+    .math-output {
+      margin-top: 12px;
+      border-top: 1px solid #e8edf2;
+      padding-top: 9px;
+      color: #64748b;
+      font: 11px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .math-output summary {
+      width: fit-content;
+      cursor: pointer;
+      color: #64748b;
+      font: 600 11px/1.5 Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .math-output dl {
+      display: grid;
+      grid-template-columns: minmax(100px, 0.25fr) 1fr;
+      gap: 5px 12px;
+      margin: 10px 0 0;
+    }
+
+    .math-output dt {
+      color: #94a3b8;
+    }
+
+    .math-output dd {
+      min-width: 0;
+      margin: 0;
+      overflow-wrap: anywhere;
+      color: #334155;
+    }
+
+    .math-output pre {
+      margin: 5px 0 10px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #334155;
+    }
+
+    .math-output h4 {
+      margin: 10px 0 2px;
+      color: #94a3b8;
+      font: 700 9px/1.4 Inter, ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
   `;
 
   private mathField: MathFieldElement | null = null;
   private modelSubscription: { dispose: () => void } | null = null;
+  private latexOutput = '';
+  private expandedOutput = '';
+  private promptOutput: PromptOutput[] = [];
 
   private readonly onMathInput = () => {
     if (!this.mathField) return;
@@ -60,6 +116,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     if (latex !== this.model.latex) {
       this.doc.updateBlock(this.model, { latex });
     }
+    this.refreshOutput();
   };
 
   private readonly onModelUpdated = () => {
@@ -85,6 +142,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     field.value = this.model.latex;
     field.addEventListener('input', this.onMathInput);
     this.modelSubscription = this.model.propsUpdated.on(this.onModelUpdated);
+    this.refreshOutput();
   }
 
   private detachMathField() {
@@ -98,12 +156,25 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     if (this.mathField && this.mathField.value !== this.model.latex) {
       this.mathField.value = this.model.latex;
     }
+    this.refreshOutput();
+  }
+
+  private refreshOutput() {
+    if (!this.mathField) return;
+
+    this.latexOutput = this.mathField.getValue('latex');
+    this.expandedOutput = this.mathField.getValue('latex-without-placeholders');
+    this.promptOutput = this.mathField.getPrompts().map(id => ({
+      id,
+      value: this.mathField?.getPromptValue(id, 'latex') ?? '',
+    }));
+    this.requestUpdate();
   }
 
   override render() {
     return html`
       <section class="jabr-math-block" aria-label="Mathematical expression">
-        <div class="jabr-math-label">MATH</div>
+        <div class="jabr-math-label">MATH / MATHLIVE</div>
         <math-field
           class="jabr-math-field"
           readonly
@@ -113,6 +184,22 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
           placeholder="Enter an expression"
           aria-label="Fill mathematical placeholders"
         ></math-field>
+        <details class="math-output">
+          <summary>Inspect MathLive output</summary>
+          <h4>Complete LaTeX</h4>
+          <pre>${this.latexOutput || 'Waiting for MathLive…'}</pre>
+          <h4>LaTeX without placeholders</h4>
+          <pre>${this.expandedOutput || '—'}</pre>
+          <h4>Prompt values</h4>
+          ${this.promptOutput.length
+            ? html`<dl>
+                ${this.promptOutput.map(prompt => html`
+                  <dt>${prompt.id}</dt>
+                  <dd>${prompt.value || '(empty)'}</dd>
+                `)}
+              </dl>`
+            : html`<p>No prompt placeholders found.</p>`}
+        </details>
       </section>
     `;
   }
