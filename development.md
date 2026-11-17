@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the implementation plan for turning Jabr's MathLive-backed expression block into a Mathcad-inspired calculation worksheet. The immediate milestones are **structured MathLive placeholders, the dual-zone math block, and the worksheet block hierarchy**. The worksheet controller and CLI adapter follow on top of these block foundations.
+This document defines the implementation plan for turning Jabr's MathLive-backed expression block into a Mathcad-inspired calculation worksheet. The immediate milestones are **structured MathLive placeholders, the dual-zone math block, and the worksheet block hierarchy**. The worksheet controller now observes BlockSuite model updates and maintains transient result state. The CLI evaluator adapter remains a stub until Jabr-CLI exposes worksheet evaluation.
 
 The goal is to reproduce the interaction model, not Mathcad's proprietary implementation. MathLive remains the sole mathematical input editor. Jabr owns the worksheet, block lifecycle, evaluation requests, and result presentation.
 
@@ -104,13 +104,12 @@ MathLive does not own:
 
 The initial prototype persists latex on jabr:math. Preserve this as the canonical mathematical source while introducing additional properties only when needed.
 
-A future math block may contain:
+The current math block persists only authored input and presentation preference:
 
-- latex: canonical editable input.
-- mode: math or another explicitly supported input mode; avoid inferring semantic mode from rendered markup.
-- result: optional serialized result snapshot or result reference, never the source of truth for recalculation.
-- displayUnit: optional requested presentation unit.
-- evaluationState: UI-facing state such as idle, pending, valid, or error; derived state should not be persisted unless recovery/offline requirements justify it.
+- `latex`: canonical editable input.
+- `displayUnit`: optional user-requested output unit.
+
+Results, diagnostics, request IDs, and source revisions live in an ephemeral UI result store. They are not written into BlockSuite/Yjs. This prevents undo/redo and collaboration history from treating computed output as authored content.
 
 The controller should identify blocks by stable BlockSuite IDs. The CLI should receive a worksheet snapshot or incremental operations keyed by those IDs, not BlockSuite model instances.
 
@@ -167,22 +166,26 @@ The controller should identify blocks by stable BlockSuite IDs. The CLI should r
 6. [x] Keep the source expression unchanged when the display unit changes.
 7. [x] Dispatch a `jabr-evaluate-request` event when the user presses `=`.
 
-The event currently marks the block as requested; it does not evaluate the expression. The result and display-unit properties are ready for a future worksheet controller and Jabr-CLI adapter.
+The event is handled by the worksheet controller. The controller currently returns an explicit “Jabr-CLI evaluator is not connected yet” state; it does not calculate the expression. Result LaTeX and diagnostics are held in a transient store. Only `latex` and the user-authored `displayUnit` remain persisted.
 
 **Acceptance:** users can distinguish source from result; results cannot be edited as source; unit overrides do not mutate the input expression.
 
-### Milestone 4 — Worksheet controller
+### Milestone 4 — Worksheet controller (initial invalidation pipeline implemented)
 
-1. Create a controller owned by the Jabr-UI editor/host layer, not by the MathLive view.
-2. Observe document changes and identify affected block IDs.
-3. Build versioned evaluation requests from ordered worksheet content.
-4. Call the Jabr-CLI adapter and correlate responses to the document revision.
-5. Ignore stale responses when a newer edit has occurred.
-6. Update result presentation without rewriting source LaTeX.
-7. Handle insertion, deletion, reordering, and invalidation of dependent results.
-8. Add host-level keyboard routing for moving between blocks and creating the next block at a true boundary.
+1. [x] Create a controller owned by the Jabr-UI editor/host layer, not by the MathLive view.
+2. [x] Subscribe to each math model's `propsUpdated` slot; this also observes programmatic Yjs updates such as undo/redo.
+3. [x] Subscribe to the worksheet hub's `childrenUpdated` slot to maintain subscriptions as blocks are inserted or removed.
+4. [x] Invalidate the edited math block and all later math blocks in hub order. This is conservative positional invalidation, not a symbol dependency DAG.
+5. [x] Keep result LaTeX, status, diagnostics, request IDs, and source revisions in a transient result store outside Yjs.
+6. [x] Define versioned, adapter-independent evaluation request/response types and reject stale or mismatched responses.
+7. [x] Route the `=` request event through the controller.
+8. [ ] Add deterministic mock evaluator fixtures and automated race/undo-redo tests.
+9. [ ] Handle block reordering and document-wide evaluation snapshots.
+10. [ ] Add host-level keyboard routing for moving between blocks and creating the next block at a true boundary.
 
-**Acceptance:** source edits trigger the correct evaluation request; stale results cannot overwrite newer work; block navigation does not break MathLive cursor movement.
+The default adapter reports that Jabr-CLI is not connected. No expression parsing, symbol resolution, dependency graph, quantity handling, or calculation is performed in Jabr-UI.
+
+**Acceptance:** source edits and Yjs undo/redo invalidate the edited row and later math rows; stale asynchronous responses cannot overwrite newer source; results never mutate persisted LaTeX.
 
 ### Milestone 5 — CLI evaluation and dependency graph
 
@@ -252,10 +255,13 @@ Named prompt identifiers are local editor metadata. They must not be mistaken fo
 
 ### Worksheet/controller-level
 
-- Definition changes invalidate dependent expressions.
-- Stale asynchronous evaluation responses are ignored.
-- Result updates do not mutate input LaTeX.
-- Display-unit changes do not change source expressions.
+- Edit the first math block and verify that it and all later math blocks return to idle with incremented source revisions.
+- Edit a later math block and verify that earlier blocks remain unchanged.
+- Undo and redo a LaTeX edit through BlockSuite/Yjs and verify that `propsUpdated` triggers the same invalidation path without a DOM input event.
+- Change only `displayUnit` and verify that source invalidation is not triggered.
+- Resolve a delayed evaluation after a newer edit and verify that the stale response is ignored.
+- Remove a math block and verify that its controller subscription and transient result state are disposed.
+- Verify that result updates do not mutate input LaTeX or Yjs document history.
 - Host-level Tab/Enter behavior only activates at a worksheet boundary.
 
 ### Repository checks
@@ -290,7 +296,9 @@ Record commands, environment, and results in the pull request. Do not mark the m
 - [x] Dual-zone input/result block (presentation and request event only; no calculation).
 - [x] Root → worksheet hub → math/text content-block hierarchy.
 - [x] Basic persisted text block.
-- [ ] Worksheet controller and CLI evaluation adapter.
+- [x] Worksheet controller source-change observation and ordered cascade invalidation (CLI evaluator remains unavailable).
+- [x] Transient result store and stale-response correlation.
+- [ ] Deterministic mock evaluator fixtures and automated undo/redo/race tests.
 - [ ] Dependency DAG and quantity engine in Jabr-CLI.
 - [ ] Math/text switching and continuous worksheet flow.
 
@@ -299,6 +307,7 @@ Record commands, environment, and results in the pull request. Do not mark the m
 - **MathLive is the sole math editor.** Jabr must not maintain a parallel mathematical cursor or syntax-tree editor.
 - **LaTeX is the persisted input representation.** It is the interchange source for the UI/CLI boundary, not the evaluation engine.
 - **The host owns worksheet behavior.** Block lifecycle, document flow, result display, and evaluation orchestration live outside the MathLive component.
+- **Computed results are transient.** Result LaTeX, status, diagnostics, and request revisions must not be persisted as BlockSuite/Yjs props.
 - **Jabr-CLI owns calculation semantics.** Parsing, symbols, DAG, quantities, and units must not be duplicated in Jabr-UI.
 - **Native MathLive navigation is preferred.** Preserve spatial arrow navigation and native placeholder Tab traversal; host handlers act only at worksheet boundaries.
 - **Repositories remain independent.** Jabr-UI and Jabr-CLI communicate through a stable contract rather than importing one another's internal implementation.
