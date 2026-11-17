@@ -3,9 +3,9 @@ import { defineBlockSchema, type SchemaToModel } from '@blocksuite/store';
 export const JabrMathSchema = defineBlockSchema({
   flavour: 'jabr:math',
   props: () => ({
-    // LaTeX is the canonical editable expression, including its input placeholders.
-    // Quantity values and units are initially represented by separately named prompts.
-    latex: String.raw`F = \placeholder[mass-value]{}\,\placeholder[mass-unit]{\mathrm{kg}} \cdot \placeholder[acceleration-value]{}\,\placeholder[acceleration-unit]{\mathrm{m/s^2}}`,
+    // LaTeX is the canonical editable expression, including named quantity prompts.
+    // Each prompt contains a complete quantity (value and unit), not separate fields.
+    latex: String.raw`F = \placeholder[mass]{5\,\mathrm{kg}} \cdot \placeholder[acceleration]{9.81\,\mathrm{m/s^2}}`,
   }),
   metadata: {
     version: 1,
