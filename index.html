@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title>Jabr UI — Worksheet prototype</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">JABR UI / BLOCKSUITE PROTOTYPE</p>
+          <h1>Calculation sheet</h1>
+          <p class="subtitle">A structured calculation worksheet with editable math and text blocks.</p>
+        </div>
+        <div class="header-actions">
+          <button id="add-math" class="add-button" type="button">＋ Add math block</button>
+          <button id="add-text" class="add-button" type="button">＋ Add text block</button>
+          <button id="toggle-mock" class="add-button" type="button">Enable mock evaluator</button>
+        </div>
+      </header>
+      <section class="document-frame" aria-label="Calculation document">
+        <div id="editor"></div>
+      </section>
+      <footer class="app-footer">
+        <span>Document data is stored locally in this browser.</span>
+        <span id="save-status" role="status">Starting document…</span>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
