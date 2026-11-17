@@ -199,14 +199,14 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     field.inlineShortcuts = { ...field.inlineShortcuts, ...UNIT_SHORTCUTS };
     field.value = this.model.latex;
     field.addEventListener('input', this.onMathInput);
-    field.addEventListener('keydown', this.onMathKeydown);
+    field.addEventListener('keydown', this.onMathKeydown, true);
     this.modelSubscription = this.model.propsUpdated.on(this.onModelUpdated);
     this.refreshOutput();
   }
 
   private detachMathField() {
     this.mathField?.removeEventListener('input', this.onMathInput);
-    this.mathField?.removeEventListener('keydown', this.onMathKeydown);
+    this.mathField?.removeEventListener('keydown', this.onMathKeydown, true);
     this.mathField = null;
     this.modelSubscription?.dispose();
     this.modelSubscription = null;
