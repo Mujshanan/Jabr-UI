@@ -12,7 +12,7 @@ import { JabrBlockExtensions } from './editor/specs';
 
 const DATABASE_NAME = 'jabr-ui-worksheet-v1';
 const DOCUMENT_ID = 'calculation-sheet';
-const DEFAULT_LATEX = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
+const DEFAULT_LATEX = String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`;
 
 const schema = new Schema().register([
   JabrRootSchema,
