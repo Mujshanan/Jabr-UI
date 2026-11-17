@@ -1,60 +1,84 @@
-import '@blocksuite/lit';
 import 'mathlive';
 import './styles.css';
 
-import { EditorHost } from '@blocksuite/lit';
+import { BlockStdScope } from '@blocksuite/block-std';
 import { DocCollection, Schema } from '@blocksuite/store';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { JabrMathSchema } from './blocks/math';
+import { JabrTextSchema } from './blocks/text';
 import { JabrRootSchema } from './editor/root';
-import { JabrBlockSpecs } from './editor/specs';
+import { JabrWorksheetSchema } from './editor/worksheet';
+import { JabrBlockExtensions } from './editor/specs';
 
-const DATABASE_NAME = 'jabr-ui-math-block-v1';
-const DEFAULT_LATEX = String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`;
+const DATABASE_NAME = 'jabr-ui-worksheet-v1';
+const DOCUMENT_ID = 'calculation-sheet';
+const DEFAULT_LATEX = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
 
-const schema = new Schema()
-  .register(JabrRootSchema)
-  .register(JabrMathSchema);
-const collection = new DocCollection({ schema });
+const schema = new Schema().register([
+  JabrRootSchema,
+  JabrWorksheetSchema,
+  JabrMathSchema,
+  JabrTextSchema,
+]);
+const collection = new DocCollection({ id: DATABASE_NAME, schema });
 collection.meta.initialize();
 
-const doc = collection.createDoc();
 const editorContainer = document.querySelector<HTMLDivElement>('#editor');
 const addMathButton = document.querySelector<HTMLButtonElement>('#add-math');
+const addTextButton = document.querySelector<HTMLButtonElement>('#add-text');
 const saveStatus = document.querySelector<HTMLSpanElement>('#save-status');
 
-if (!editorContainer || !addMathButton || !saveStatus) {
+if (!editorContainer || !addMathButton || !addTextButton || !saveStatus) {
   throw new Error('The Jabr UI application shell is incomplete.');
 }
 
-const host = new EditorHost();
-host.doc = doc;
-host.specs = JabrBlockSpecs;
-editorContainer.append(host);
+const collectionPersistence = new IndexeddbPersistence(
+  `${DATABASE_NAME}:collection`,
+  collection.doc
+);
+let documentPersistence: IndexeddbPersistence | null = null;
+let worksheetId = '';
 
-let rootId = '';
+async function initializeDocument() {
+  await collectionPersistence.whenSynced;
 
-function initializeDocument() {
+  const doc = collection.getDoc(DOCUMENT_ID) ?? collection.createDoc({ id: DOCUMENT_ID });
+  documentPersistence = new IndexeddbPersistence(
+    `${DATABASE_NAME}:document`,
+    doc.spaceDoc
+  );
+  await documentPersistence.whenSynced;
   doc.load();
 
-  if (doc.root.length > 0) {
-    rootId = doc.root[0].id;
+  if (!doc.root) {
+    const rootId = doc.addBlock('jabr:root', { title: 'Untitled calculation' });
+    worksheetId = doc.addBlock('jabr:worksheet', {}, rootId);
+    doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, worksheetId);
   } else {
-    rootId = doc.addBlock('jabr:root', { title: 'Untitled calculation' });
-    doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, rootId);
+    const root = doc.root;
+    worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet', {}, root.id);
   }
+
+  const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
+  editorContainer.replaceChildren(std.render());
+
+  addMathButton.addEventListener('click', () => {
+    doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, worksheetId);
+  });
+  addTextButton.addEventListener('click', () => {
+    doc.addBlock('jabr:text', { text: '' }, worksheetId);
+  });
 
   saveStatus.textContent = 'Local document ready';
 }
 
-const persistence = new IndexeddbPersistence(DATABASE_NAME, doc.spaceDoc);
-persistence.on('synced', initializeDocument);
-
-addMathButton.addEventListener('click', () => {
-  if (!rootId) return;
-  doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, rootId);
+void initializeDocument().catch(error => {
+  console.error('Failed to initialize Jabr worksheet:', error);
+  saveStatus.textContent = 'Could not load local document';
 });
 
 window.addEventListener('beforeunload', () => {
-  persistence.destroy();
+  documentPersistence?.destroy();
+  collectionPersistence.destroy();
+  collection.dispose();
 });
