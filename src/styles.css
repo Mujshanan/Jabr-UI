@@ -54,6 +54,12 @@ h1 {
   font-size: 14px;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .add-button {
   flex: 0 0 auto;
   border: 1px solid #20242b;
@@ -66,7 +72,7 @@ h1 {
   font-weight: 600;
 }
 
-.header-actions {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 10px;\n}\n\n.add-button.secondary {\n  border-color: #cbd5e1;\n  color: #334155;\n  background: white;\n}\n\n.add-button.secondary:hover {\n  background: #f1f5f9;\n}\n\n.add-button:hover {
+.add-button:hover {
   background: #394150;
 }
 
