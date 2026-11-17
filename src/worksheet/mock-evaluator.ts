@@ -6,9 +6,9 @@ import type { EvaluationAdapter, EvaluationRequest, EvaluationResponse } from '.
  */
 export class MockEvaluationAdapter implements EvaluationAdapter {
   private readonly fixtures = new Map<string, Omit<EvaluationResponse, 'blockId' | 'requestId' | 'sourceRevision'>>([
-    [String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`, {
+    [String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`, {
       status: 'success',
-      resultLatex: String.raw`\\boxed{\\text{MOCK: fixture result}}`,
+      resultLatex: String.raw`\boxed{\text{MOCK: fixture result}}`,
       diagnostic: 'Mock fixture — not a calculation.',
     }],
     ['MOCK_ERROR', {
