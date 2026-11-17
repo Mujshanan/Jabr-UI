@@ -114,6 +114,16 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       color: #94a3b8;
       font: 11px/1.4 Inter, ui-sans-serif, system-ui, sans-serif;
     }
+    .jabr-math-row { display: grid; grid-template-columns: minmax(0, 1fr) 22px minmax(190px, 0.62fr); align-items: center; gap: 12px; min-width: 0; }
+    .math-input-zone, .result-zone, .result-main { min-width: 0; }
+    .math-equals { color: #94a3b8; text-align: center; font: 500 22px/1 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .result-zone { display: flex; align-items: center; gap: 8px; }
+    .result-main { flex: 1; }
+    .jabr-result-field { display: block; width: 100%; min-height: 42px; border: 0; outline: 0; background: transparent; color: #334155; font-size: 22px; --caret-color: transparent; }
+    .result-status { display: block; min-height: 14px; color: #94a3b8; font: 10px/1.4 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .unit-override { box-sizing: border-box; width: 62px; min-width: 0; padding: 6px 5px; border: 1px dashed #cbd5e1; border-radius: 5px; color: #64748b; background: #fff; font: 12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; outline: none; }
+    .unit-override:focus { border-style: solid; border-color: #94a3b8; }
+    @media (max-width: 640px) { .jabr-math-row { grid-template-columns: minmax(0, 1fr) 18px minmax(125px, 0.75fr); gap: 7px; } .jabr-result-field { font-size: 18px; } .unit-override { width: 48px; } }
     .jabr-math-field {
       display: block;
       width: 100%;
@@ -167,17 +177,51 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   private readonly onMathInput = () => {
     if (!this.mathField) return;
     const latex = this.mathField.value;
-    if (latex !== this.model.latex) this.doc.updateBlock(this.model, { latex });
+    if (latex !== this.model.latex) {
+      this.doc.updateBlock(this.model, { latex, resultLatex: '', resultStatus: 'idle' });
+    }
     this.refreshOutput();
   };
 
   private readonly onMathKeydown = (event: KeyboardEvent) => {
     if (!this.mathField || event.defaultPrevented) return;
-    if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey) return;
-    // Match Mathcad: slash inserts a structured fraction, not a literal slash.
-    event.preventDefault();
-    this.insertTemplate(MATH_TEMPLATES[0]);
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === '=') {
+      event.preventDefault();
+      this.requestEvaluation();
+      return;
+    }
+    if (event.key === '/') {
+      // Match Mathcad: slash inserts a structured fraction, not a literal slash.
+      event.preventDefault();
+      this.insertTemplate(MATH_TEMPLATES[0]);
+    }
   };
+
+  private readonly onDisplayUnitInput = (event: Event) => {
+    const displayUnit = (event.currentTarget as HTMLInputElement).value;
+    if (displayUnit !== this.model.displayUnit) {
+      this.doc.updateBlock(this.model, { displayUnit });
+    }
+  };
+
+  private requestEvaluation() {
+    this.doc.updateBlock(this.model, { resultStatus: 'requested' });
+    this.dispatchEvent(new CustomEvent('jabr-evaluate-request', {
+      bubbles: true,
+      composed: true,
+      detail: { blockId: this.model.id, latex: this.model.latex },
+    }));
+  }
+
+  private get resultStatusLabel() {
+    if (this.model.resultLatex) return 'Result';
+    switch (this.model.resultStatus) {
+      case 'requested': return 'Evaluation requested · CLI adapter pending';
+      case 'error': return 'Evaluation error';
+      default: return 'Press = to request evaluation';
+    }
+  }
 
   private readonly onModelUpdated = () => this.syncFromModel();
 
@@ -261,11 +305,26 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
           `)}
         </div>
         <div class="jabr-math-help">
-          / inserts a fraction · Tab / Shift+Tab moves between placeholders · Arrow keys navigate mathematical structures
+          / inserts a fraction · = requests evaluation · Tab / Shift+Tab moves between placeholders · Arrow keys navigate mathematical structures
         </div>
-        <math-field class="jabr-math-field" math-virtual-keyboard-policy="manual"
-          smart-fence smart-mode smart-superscript placeholder="Enter an expression"
-          aria-label="Mathematical expression editor"></math-field>
+        <div class="jabr-math-row">
+          <div class="math-input-zone">
+            <math-field class="jabr-math-field" math-virtual-keyboard-policy="manual"
+              smart-fence smart-mode smart-superscript placeholder="Enter an expression"
+              aria-label="Mathematical expression editor"></math-field>
+          </div>
+          <span class="math-equals" aria-hidden="true">=</span>
+          <div class="result-zone">
+            <div class="result-main">
+              <math-field class="jabr-result-field" read-only .value=${this.model.resultLatex}
+                aria-label="Read-only calculation result"></math-field>
+              <span class="result-status" role="status">${this.resultStatusLabel}</span>
+            </div>
+            <input class="unit-override" type="text" .value=${this.model.displayUnit}
+              placeholder="unit" aria-label="Requested result display unit"
+              title="Request a result unit, for example cm" @input=${this.onDisplayUnitInput} />
+          </div>
+        </div>
         <details class="math-output">
           <summary>Inspect expression and placeholders</summary>
           <h4>LaTeX source</h4>
