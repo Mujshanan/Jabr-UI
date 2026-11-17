@@ -2,39 +2,47 @@
 
 BlockSuite-based calculation-sheet blocks. Jabr UI is intended to remain independently developable and will later be integrated into an AFFiNE-based editor alongside Jabr-CLI.
 
-## First prototype: editable MathLive expression block
+## First prototype: structured MathLive input
 
 This prototype establishes a minimal standalone BlockSuite host and one custom content block:
 
-- `jabr:root`: minimal document root required by the standalone host.
-- `jabr:math`: MathLive-powered editable mathematical expression.
+- jabr:root: minimal document root required by the standalone host.
+- jabr:math: MathLive-powered editable mathematical expression.
 
-The math block is a normal editable MathLive field, not a read-only expression with only a few active slots. Users can type and navigate through the complete expression. MathLive owns structured mathematical editing: fractions, scripts, roots, fences, cursor movement, selection, and LaTeX serialization.
+MathLive is the sole mathematical input editor. It owns structured mathematical editing: fractions, scripts, roots, fences, matrices, cursor movement, selection, and LaTeX serialization. Jabr does not implement a second equation editor or cursor model.
 
-### Mathcad-style quantity placeholders
+### Mathcad-style placeholders and templates
 
-The starter expression is:
+The default expression is an assignment-shaped example:
 
-`F = [mass] · [acceleration]`
+F := [force]
 
-Each named placeholder represents a complete quantity, including its numeric expression and unit. For example, the mass prompt can contain `5 kg`, and the acceleration prompt can contain `9.81 m/s²`. A quantity is not split into separate number and unit boxes.
+Each named placeholder represents a complete mathematical quantity, including its numeric expression and unit. For example, the force prompt can contain 100 N. Prompt identifiers are editor metadata, not worksheet variables.
 
-Prompt IDs are semantic identifiers (`mass`, `acceleration`, `force`) rather than display labels. This allows Jabr to associate each slot with an expected physical dimension, show a relevant input hint, and later validate the entered quantity.
+The math block provides structural insertion templates:
 
-The MathLive field also defines a small set of engineering unit inline shortcuts. After a number or space, typing `kg`, `mm`, `cm`, `kN`, `MPa`, `GPa`, `mps`, or `mps2` inserts an upright unit expression. For example, `9.81 mps2` inserts `9.81\,\mathrm{m/s^2}`. Tab and Shift+Tab move between named prompts using MathLive's placeholder navigation.
+- Fraction: separate numerator and denominator placeholders.
+- Square root: radicand placeholder.
+- Indexed root: index and radicand placeholders.
+- Integral: lower limit, upper limit, integrand, and differential variable placeholders.
+- 2×2 matrix: four independent cell placeholders.
 
-**Current limitation:** the shortcuts only improve unit notation and readability. This prototype does not yet parse units, convert quantities, or check dimensional consistency. Those behaviors belong in a separate Jabr quantity/unit layer and eventually the Jabr-CLI calculation contract. MathLive is the structured input surface, not the unit engine.
+Typing / in the math field inserts a structured fraction rather than a literal slash. Template prompt identifiers are made unique for each insertion. Subscript and superscript entry remains native to MathLive through _ and ^.
+
+MathLive's native Tab and Shift+Tab placeholder navigation and spatial arrow-key navigation are preserved. The host does not install a competing Tab handler inside the math field.
+
+The field also defines a small set of engineering unit inline shortcuts. After a number or space, typing kg, mm, cm, kN, MPa, GPa, mps, or mps2 inserts upright unit notation. These are input conveniences only; they do not parse units or perform conversions.
 
 ### Persistence
 
-The block's canonical document property is `latex`. Rendered DOM and MathLive's internal state are not persisted. On each MathLive input event, the LaTeX source is written to the BlockSuite model. Model updates are reflected back into the field without resetting it when the value is already synchronized.
+The block's canonical document property is latex. Rendered DOM and MathLive's internal state are not persisted. On each MathLive input event, the LaTeX source is written to the BlockSuite model. Model updates are reflected back into the field without resetting it when the value is already synchronized.
 
-The expression inspector exposes the LaTeX source and current values for named prompts. The document is persisted locally in the browser using IndexedDB through `y-indexeddb`.
+The expression inspector exposes the LaTeX source and current values for named prompts. The document is persisted locally in the browser using IndexedDB through y-indexeddb.
 
 ## Requirements
 
-- Node.js `^20.19.0 || >=22.12.0`
-- pnpm `10.34.5`
+- Node.js ^20.19.0 || >=22.12.0
+- pnpm 10.34.5
 
 ## Run
 
@@ -43,7 +51,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local Vite URL. Use **Add math block** to insert another expression. Edit anywhere in the equation; each named placeholder accepts a complete mathematical quantity, including its unit. Use Tab / Shift+Tab to move between placeholders. Expand **Inspect expression inputs** to inspect the LaTeX and prompt values.
+Open the local Vite URL. Use Add math block to insert another expression. Edit anywhere in the equation. Use the template toolbar or / to insert structured mathematical groups, then fill their placeholders with the keyboard. Use Tab / Shift+Tab to move between placeholders. Expand Inspect expression and placeholders to inspect the LaTeX and prompt values.
 
 ## Build
 
@@ -56,12 +64,13 @@ pnpm build
 
 - BlockSuite owns block identity, document state, updates, and the document tree.
 - MathLive owns mathematical input, placeholder interaction, cursor/selection behavior, and LaTeX editing.
-- `jabr:math` stores LaTeX source only; rendered HTML is never stored.
-- Jabr-specific quantity parsing, unit catalog, conversion, and dimensional validation are separate from MathLive.
-- Jabr-CLI is deliberately not a dependency. A future integration will define a stable expression/AST and quantity contract without coupling the UI block to parser internals.
+- jabr:math stores LaTeX source only; rendered HTML is never stored.
+- The worksheet controller will own document flow, block lifecycle, and evaluation orchestration.
+- Jabr-CLI will own parsing, assignment/evaluation semantics, symbol scope, dependency DAG, quantities, units, and dimensional validation.
+- Jabr-CLI is deliberately not a dependency of this prototype. A future integration will define a stable expression/worksheet contract without coupling the UI block to parser internals.
 
-The standalone root and host are prototype scaffolding, not a general block framework. The first implementation pins BlockSuite `0.19.5`, which uses the standalone `Doc` / `EditorHost` / `BlockSpec` API. This keeps the prototype small and independently runnable; compatibility with the newer BlockSuite extension API used by current AFFiNE must be handled explicitly during final integration.
+The standalone root and host are prototype scaffolding, not a general block framework. The first implementation pins BlockSuite 0.19.5, which uses the standalone Doc / EditorHost / BlockSpec API. Compatibility with the newer BlockSuite extension API used by current AFFiNE must be handled explicitly during final integration.
 
 ## Verification status
 
-The source is written against BlockSuite `0.19.5` and MathLive `0.111.4`. Dependency installation, TypeScript checking, production build, and browser interaction still need to be run in a local development environment before this prototype can be considered verified.
+The source is written against BlockSuite 0.19.5 and MathLive 0.111.4. The structural templates and shortcut behavior are implemented on the feature branch, but dependency installation, TypeScript checking, production build, and browser interaction still need to be run in a local development environment before this prototype can be considered verified. See development.md for the full plan and acceptance criteria.
