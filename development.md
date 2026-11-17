@@ -82,7 +82,7 @@ Jabr-CLI owns the language and calculation semantics:
 - Structured diagnostics and serializable result values.
 - A stable host-facing API that can be called by Jabr-UI without importing BlockSuite.
 
-The CLI boundary should be defined before UI code relies on concrete parser internals. Prefer versioned request/response types and stable identifiers over passing BlockSuite models into the engine.
+The CLI boundary should be defined before UI code relies on concrete parser internals. Prefer versioned request/response types and stable identifiers over passing BlockSuite models into the engine. **Current repository baseline:** Jabr-CLI currently exposes asynchronous Mathlex parse/LaTeX-serialization functions and AST node types; the inspected main branch does not yet expose worksheet evaluation, variable scope, a dependency DAG, quantity evaluation, or a unit registry. Treat those as future CLI work, not existing capabilities. The worksheet controller can be designed now, but its evaluator adapter must remain an interface/stub until the CLI contract exists.
 
 ### MathLive
 
@@ -282,8 +282,8 @@ Record commands, environment, and results in the pull request. Do not mark the m
 - [x] Minimal BlockSuite host and jabr:math block.
 - [x] MathLive editable expression with LaTeX persistence.
 - [x] Initial semantic quantity prompts and engineering unit shortcuts.
-- [ ] Reusable structural placeholder templates.
-- [ ] Mathcad-style fraction insertion shortcut.
+- [x] Reusable structural placeholder templates (implementation present; browser verification pending).
+- [x] Mathcad-style fraction insertion shortcut (implementation present; browser verification pending).
 - [ ] Template keyboard/navigation verification.
 - [ ] Dual-zone input/result block.
 - [ ] Worksheet controller and CLI evaluation adapter.
