@@ -11,6 +11,7 @@ import { JabrWorksheetSchema } from './editor/worksheet';
 import { JabrBlockExtensions } from './editor/specs';
 import { WorksheetController, type WorksheetModelLike } from './worksheet/controller';
 import { MockEvaluationAdapter } from './worksheet/mock-evaluator';
+import { worksheetResults } from './worksheet/result-store';
 
 const DATABASE_NAME = 'jabr-ui-worksheet-v1';
 const DOCUMENT_ID = 'calculation-sheet';
@@ -96,6 +97,18 @@ async function initializeDocument() {
     if (detail?.blockId) void worksheetController?.requestEvaluation(detail.blockId);
   };
   editorElement.addEventListener('jabr-evaluate-request', evaluationRequestListener);
+
+  if (new URLSearchParams(window.location.search).has('e2e')) {
+    // Narrow test seam: exposes the real BlockSuite document only in browser E2E runs.
+    Object.defineProperty(window, '__JABR_TEST__', {
+      configurable: true,
+      value: {
+        doc,
+        worksheet: worksheetModel,
+        getResult: (blockId: string) => worksheetResults.get(blockId),
+      },
+    });
+  }
 
   const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
   editorElement.replaceChildren(std.render());
