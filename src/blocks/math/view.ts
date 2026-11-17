@@ -220,10 +220,22 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   private insertTemplate(template: MathTemplate) {
     if (!this.mathField) return;
     this.mathField.focus();
-    const sequence = ++this.templateSequence;
-    const latex = template.latex.replace(/\\placeholder\[([^\]]+)\]/g, (_match, id: string) =>
-      `\\placeholder[${id}-${sequence}]`,
-    );
+    const existingPromptIds = new Set(this.mathField.getPrompts());
+    let sequence = this.templateSequence;
+    let latex = '';
+    let insertedPromptIds: string[] = [];
+
+    do {
+      sequence += 1;
+      insertedPromptIds = [];
+      latex = template.latex.replace(/\\placeholder\[([^\]]+)\]/g, (_match, id: string) => {
+        const uniqueId = `${id}-${sequence}`;
+        insertedPromptIds.push(uniqueId);
+        return `\\placeholder[${uniqueId}]`;
+      });
+    } while (insertedPromptIds.some(id => existingPromptIds.has(id)));
+
+    this.templateSequence = sequence;
     this.mathField.executeCommand(['insert', latex, { selectionMode: 'placeholder' }]);
   }
 
