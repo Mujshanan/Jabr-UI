@@ -10,10 +10,11 @@ import { JabrRootSchema } from './editor/root';
 import { JabrWorksheetSchema } from './editor/worksheet';
 import { JabrBlockExtensions } from './editor/specs';
 import { WorksheetController, type WorksheetModelLike } from './worksheet/controller';
+import { MockEvaluationAdapter } from './worksheet/mock-evaluator';
 
 const DATABASE_NAME = 'jabr-ui-worksheet-v1';
 const DOCUMENT_ID = 'calculation-sheet';
-const DEFAULT_LATEX = String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`;
+const DEFAULT_LATEX = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
 
 const schema = new Schema().register([
   JabrRootSchema,
@@ -27,22 +28,25 @@ collection.meta.initialize();
 const editorContainer = document.querySelector<HTMLDivElement>('#editor');
 const addMathButton = document.querySelector<HTMLButtonElement>('#add-math');
 const addTextButton = document.querySelector<HTMLButtonElement>('#add-text');
+const mockButton = document.querySelector<HTMLButtonElement>('#toggle-mock');
 const saveStatus = document.querySelector<HTMLSpanElement>('#save-status');
 
-if (!editorContainer || !addMathButton || !addTextButton || !saveStatus) {
+if (!editorContainer || !addMathButton || !addTextButton || !mockButton || !saveStatus) {
   throw new Error('The Jabr UI application shell is incomplete.');
 }
 
 const editorElement = editorContainer;
 const addMathControl = addMathButton;
 const addTextControl = addTextButton;
+const mockControl = mockButton;
 const statusElement = saveStatus;
-
 
 const collectionPersistence = new IndexeddbPersistence(
   `${DATABASE_NAME}:collection`,
   collection.doc
 );
+const mockAdapter = new MockEvaluationAdapter();
+let mockEnabled = false;
 let documentPersistence: IndexeddbPersistence | null = null;
 let worksheetId = '';
 let worksheetController: WorksheetController | null = null;
@@ -75,6 +79,17 @@ async function initializeDocument() {
   worksheetController = new WorksheetController({
     documentId: DOCUMENT_ID,
     worksheet: worksheetModel as unknown as WorksheetModelLike,
+    adapter: {
+      evaluate: request => mockEnabled
+        ? mockAdapter.evaluate(request)
+        : Promise.resolve({
+            blockId: request.blockId,
+            requestId: request.requestId,
+            sourceRevision: request.sourceRevision,
+            status: 'unavailable',
+            diagnostic: 'Enable the mock evaluator or connect Jabr-CLI.',
+          }),
+    },
   });
   evaluationRequestListener = (event: Event) => {
     const detail = (event as CustomEvent<{ blockId: string }>).detail;
@@ -91,8 +106,15 @@ async function initializeDocument() {
   addTextControl.addEventListener('click', () => {
     doc.addBlock('jabr:text' as never, { text: '' } as never, worksheetId);
   });
+  mockControl.addEventListener('click', () => {
+    mockEnabled = !mockEnabled;
+    mockControl.textContent = mockEnabled ? 'Disable mock evaluator' : 'Enable mock evaluator';
+    statusElement.textContent = mockEnabled
+      ? 'Local document ready · mock evaluator enabled (fixtures only)'
+      : 'Local document ready · CLI evaluator unavailable';
+  });
 
-  statusElement.textContent = 'Local document ready';
+  statusElement.textContent = 'Local document ready · CLI evaluator unavailable';
 }
 
 void initializeDocument().catch(error => {
