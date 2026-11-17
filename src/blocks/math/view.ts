@@ -12,10 +12,10 @@ type MathFieldElement = HTMLElement & {
 
 type PromptOutput = { id: string; value: string };
 
-const UNIT_PROMPT_HINTS: Record<string, string> = {
-  'mass-unit': 'Mass unit · e.g. kg, g, tonne',
-  'acceleration-unit': 'Acceleration unit · e.g. m/s², mm/s², g₀',
-  'force-unit': 'Force unit · e.g. N, kN, lbf',
+const QUANTITY_PROMPT_HINTS: Record<string, string> = {
+  mass: 'Quantity input · expected dimension: mass · e.g. 5 kg',
+  acceleration: 'Quantity input · expected dimension: acceleration · e.g. 9.81 m/s²',
+  force: 'Quantity input · expected dimension: force · e.g. 12 kN',
 };
 
 @customElement('jabr-math-block')
@@ -192,15 +192,15 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
           <summary>Inspect expression inputs</summary>
           <h4>LaTeX source</h4>
           <pre>${this.latexOutput || 'Waiting for MathLive…'}</pre>
-          <h4>Placeholder values</h4>
+          <h4>Named quantity inputs</h4>
           ${this.promptOutput.length
             ? html`<dl>
                 ${this.promptOutput.map(prompt => html`
                   <dt>${prompt.id}</dt>
                   <dd>
                     ${prompt.value || '(empty)'}
-                    ${UNIT_PROMPT_HINTS[prompt.id]
-                      ? html`<span> — ${UNIT_PROMPT_HINTS[prompt.id]}</span>`
+                    ${QUANTITY_PROMPT_HINTS[prompt.id]
+                      ? html`<span> — ${QUANTITY_PROMPT_HINTS[prompt.id]}</span>`
                       : ''}
                   </dd>
                 `)}
