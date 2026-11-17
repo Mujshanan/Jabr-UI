@@ -34,23 +34,23 @@ Each math block is presented as an editable input zone, an equals separator, and
 - Right: read-only MathLive result display.
 - Far right: optional display-unit request field.
 
-Pressing `=` dispatches a `jabr-evaluate-request` event containing the block ID and LaTeX source. The current UI marks the request as pending; it does not calculate anything. The result LaTeX and status are presentation properties that a future worksheet controller/CLI adapter can update. The display-unit field records the requested output unit but does not perform conversion.
+Pressing `=` dispatches a `jabr-evaluate-request` event to the worksheet controller. The current adapter explicitly reports that Jabr-CLI is not connected; no calculation occurs. Result LaTeX, status, diagnostics, request IDs, and source revisions live in a transient UI store, not in BlockSuite/Yjs. Only authored LaTeX and the requested display unit are persisted.
 
 ### Text blocks
 
 Text blocks are separate BlockSuite content blocks with their own persisted text property. They are created using the Add text block control. Automatic Spacebar conversion between math and prose is not implemented yet.
 
-## Persistence
+## Persistence and transient evaluation state
 
 The document schema and block views are registered through the BlockSuite 0.19.5 `BlockStdScope` / `BlockViewExtension` API. The local IndexedDB setup persists both the collection metadata and the worksheet document using y-indexeddb.
 
-The canonical mathematical source is the `latex` property. Rendered DOM and MathLive's internal editing state are not persisted.
+The canonical mathematical source is the `latex` property; `displayUnit` is a user-authored presentation preference. Computed result LaTeX, status, diagnostics, request IDs, and source revisions are held in a separate in-memory result store and are not persisted in Yjs.
 
 ## Architecture ownership
 
 - BlockSuite owns block identity, schema validation, document order, persistence, and model updates.
 - MathLive owns mathematical input, placeholders, cursor/selection behavior, and LaTeX editing.
-- Jabr-UI owns block presentation, worksheet flow, evaluation-request events, and result display.
+- Jabr-UI owns block presentation, worksheet flow, evaluation-request events, conservative ordered invalidation, transient result state, and result display.
 - Jabr-CLI will later own parsing, assignment/evaluation semantics, variable scope, dependency DAG, quantities, units, and dimensional validation.
 - Jabr-UI must not duplicate calculation or unit semantics while those CLI capabilities are being developed.
 
