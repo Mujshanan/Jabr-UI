@@ -34,33 +34,25 @@ editorContainer.append(host);
 
 let rootId = '';
 
-function ensureInitialDocument() {
+function initializeDocument() {
+  doc.load();
+
   if (doc.root.length > 0) {
     rootId = doc.root[0].id;
-    return;
-  }
-
-  doc.load(() => {
+  } else {
     rootId = doc.addBlock('jabr:root', { title: 'Untitled calculation' });
     doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, rootId);
-  });
+  }
+
+  saveStatus.textContent = 'Local document ready';
 }
 
 const persistence = new IndexeddbPersistence(DATABASE_NAME, doc.spaceDoc);
-persistence.on('synced', () => {
-  doc.load();
-  ensureInitialDocument();
-  saveStatus.textContent = 'Local document ready';
-});
+persistence.on('synced', initializeDocument);
 
 addMathButton.addEventListener('click', () => {
   if (!rootId) return;
-
   doc.addBlock('jabr:math', { latex: DEFAULT_LATEX }, rootId);
-  requestAnimationFrame(() => {
-    const fields = host.querySelectorAll('math-field');
-    (fields[fields.length - 1] as HTMLElement | undefined)?.focus();
-  });
 });
 
 window.addEventListener('beforeunload', () => {
