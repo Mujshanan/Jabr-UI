@@ -23,7 +23,8 @@
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "vite": "7.3.8"
+    "vite": "7.3.8",
+    "yjs": "^13.6.27"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
