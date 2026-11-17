@@ -1,43 +1,60 @@
 # Jabr UI
 
-BlockSuite-based calculation-sheet blocks. Jabr UI is intended to remain independently developable and will later be integrated into an AFFiNE-based editor alongside Jabr-CLI.
+Jabr UI is the BlockSuite-based worksheet presentation layer. It is developed independently from Jabr-CLI and will later be integrated into an AFFiNE-based editor.
 
-## First prototype: structured MathLive input
+## Current worksheet blocks
 
-This prototype establishes a minimal standalone BlockSuite host and one custom content block:
+The standalone document uses a small, explicit block tree:
 
-- jabr:root: minimal document root required by the standalone host.
-- jabr:math: MathLive-powered editable mathematical expression.
+- `jabr:root`: document root and title.
+- `jabr:worksheet`: hub/container that owns ordered worksheet content.
+- `jabr:math`: editable MathLive input with a separate read-only result zone.
+- `jabr:text`: editable prose/note block.
+
+The hub block is intentional: BlockSuite 0.19.5 does not allow content blocks to be direct children of a root block. The worksheet hub provides the valid parent for math and text content.
+
+## MathLive input and Mathcad-style interaction
 
 MathLive is the sole mathematical input editor. It owns structured mathematical editing: fractions, scripts, roots, fences, matrices, cursor movement, selection, and LaTeX serialization. Jabr does not implement a second equation editor or cursor model.
 
-### Mathcad-style placeholders and templates
+The math block currently provides:
 
-The default expression is an assignment-shaped example:
+- Named structural placeholders for fractions, square roots, indexed roots, integrals, and 2×2 matrices.
+- A slash shortcut that inserts a structured fraction.
+- Native MathLive Tab / Shift+Tab placeholder traversal and spatial arrow-key navigation.
+- Engineering unit inline shortcuts such as kg, mm, cm, kN, MPa, GPa, mps, and mps2.
+- LaTeX persistence in the BlockSuite model.
 
-F := [force]
+### Dual-zone calculation row
 
-Each named placeholder represents a complete mathematical quantity, including its numeric expression and unit. For example, the force prompt can contain 100 N. Prompt identifiers are editor metadata, not worksheet variables.
+Each math block is presented as an editable input zone, an equals separator, and a result zone:
 
-The math block provides structural insertion templates:
+- Left: editable MathLive expression.
+- Middle: equals delimiter.
+- Right: read-only MathLive result display.
+- Far right: optional display-unit request field.
 
-- Fraction: separate numerator and denominator placeholders.
-- Square root: radicand placeholder.
-- Indexed root: index and radicand placeholders.
-- Integral: lower limit, upper limit, integrand, and differential variable placeholders.
-- 2×2 matrix: four independent cell placeholders.
+Pressing `=` dispatches a `jabr-evaluate-request` event containing the block ID and LaTeX source. The current UI marks the request as pending; it does not calculate anything. The result LaTeX and status are presentation properties that a future worksheet controller/CLI adapter can update. The display-unit field records the requested output unit but does not perform conversion.
 
-Typing / in the math field inserts a structured fraction rather than a literal slash. Template prompt identifiers are made unique for each insertion. Subscript and superscript entry remains native to MathLive through _ and ^.
+### Text blocks
 
-MathLive's native Tab and Shift+Tab placeholder navigation and spatial arrow-key navigation are preserved. The host does not install a competing Tab handler inside the math field.
+Text blocks are separate BlockSuite content blocks with their own persisted text property. They are created using the Add text block control. Automatic Spacebar conversion between math and prose is not implemented yet.
 
-The field also defines a small set of engineering unit inline shortcuts. After a number or space, typing kg, mm, cm, kN, MPa, GPa, mps, or mps2 inserts upright unit notation. These are input conveniences only; they do not parse units or perform conversions.
+## Persistence
 
-### Persistence
+The document schema and block views are registered through the BlockSuite 0.19.5 `BlockStdScope` / `BlockViewExtension` API. The local IndexedDB setup persists both the collection metadata and the worksheet document using y-indexeddb.
 
-The block's canonical document property is latex. Rendered DOM and MathLive's internal state are not persisted. On each MathLive input event, the LaTeX source is written to the BlockSuite model. Model updates are reflected back into the field without resetting it when the value is already synchronized.
+The canonical mathematical source is the `latex` property. Rendered DOM and MathLive's internal editing state are not persisted.
 
-The expression inspector exposes the LaTeX source and current values for named prompts. The document is persisted locally in the browser using IndexedDB through y-indexeddb.
+## Architecture ownership
+
+- BlockSuite owns block identity, schema validation, document order, persistence, and model updates.
+- MathLive owns mathematical input, placeholders, cursor/selection behavior, and LaTeX editing.
+- Jabr-UI owns block presentation, worksheet flow, evaluation-request events, and result display.
+- Jabr-CLI will later own parsing, assignment/evaluation semantics, variable scope, dependency DAG, quantities, units, and dimensional validation.
+- Jabr-UI must not duplicate calculation or unit semantics while those CLI capabilities are being developed.
+
+The dependency versions are aligned to the published BlockSuite 0.19.5 packages. This is a standalone prototype API; compatibility with current AFFiNE/BlockSuite versions will be handled during integration.
 
 ## Requirements
 
@@ -51,7 +68,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local Vite URL. Use Add math block to insert another expression. Edit anywhere in the equation. Use the template toolbar or / to insert structured mathematical groups, then fill their placeholders with the keyboard. Use Tab / Shift+Tab to move between placeholders. Expand Inspect expression and placeholders to inspect the LaTeX and prompt values.
+Use Add math block or Add text block to append worksheet content. In a math block, use the template toolbar or `/` to insert structured mathematical groups. Press `=` to dispatch an evaluation request. Fill placeholders using MathLive's native Tab / Shift+Tab navigation. Expand Inspect expression and placeholders to inspect the LaTeX and prompt values.
 
 ## Build
 
@@ -60,17 +77,6 @@ pnpm typecheck
 pnpm build
 ```
 
-## Architecture
+## Verification
 
-- BlockSuite owns block identity, document state, updates, and the document tree.
-- MathLive owns mathematical input, placeholder interaction, cursor/selection behavior, and LaTeX editing.
-- jabr:math stores LaTeX source only; rendered HTML is never stored.
-- The worksheet controller will own document flow, block lifecycle, and evaluation orchestration.
-- Jabr-CLI will own parsing, assignment/evaluation semantics, symbol scope, dependency DAG, quantities, units, and dimensional validation.
-- Jabr-CLI is deliberately not a dependency of this prototype. A future integration will define a stable expression/worksheet contract without coupling the UI block to parser internals.
-
-The standalone root and host are prototype scaffolding, not a general block framework. The first implementation pins BlockSuite 0.19.5, which uses the standalone Doc / EditorHost / BlockSpec API. Compatibility with the newer BlockSuite extension API used by current AFFiNE must be handled explicitly during final integration.
-
-## Verification status
-
-The source is written against BlockSuite 0.19.5 and MathLive 0.111.4. The structural templates and shortcut behavior are implemented on the feature branch, but dependency installation, TypeScript checking, production build, and browser interaction still need to be run in a local development environment before this prototype can be considered verified. See development.md for the full plan and acceptance criteria.
+The feature branch has GitHub Actions CI configured to install dependencies, typecheck, and build. Browser interaction testing is still required for placeholder traversal, persistence, read-only result rendering, and text editing. See [development.md](./development.md) for the milestone plan and acceptance criteria.
