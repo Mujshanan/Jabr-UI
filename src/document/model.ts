@@ -17,6 +17,8 @@ export type MatrixEntryId = string & { readonly __brand: 'MatrixEntryId' };
 export type LayoutColumnId = string & { readonly __brand: 'LayoutColumnId' };
 export type LayoutRowId = string & { readonly __brand: 'LayoutRowId' };
 export type FunctionParameterId = string & { readonly __brand: 'FunctionParameterId' };
+export type ScopeId = string & { readonly __brand: 'ScopeId' };
+export type LogicBranchId = string & { readonly __brand: 'LogicBranchId' };
 
 export const DOCUMENT_SCHEMA_VERSION = 1 as const;
 
@@ -30,6 +32,15 @@ export function createStableId<T extends string>(): T {
 export const createDocumentId = (): DocumentId => createStableId<DocumentId>();
 export const createBlockId = (): BlockId => createStableId<BlockId>();
 export const createDeclarationId = (): DeclarationId => createStableId<DeclarationId>();
+export const createTableRowId = (): TableRowId => createStableId<TableRowId>();
+export const createTableColumnId = (): TableColumnId => createStableId<TableColumnId>();
+export const createTableCellId = (): TableCellId => createStableId<TableCellId>();
+export const createMatrixEntryId = (): MatrixEntryId => createStableId<MatrixEntryId>();
+export const createLayoutColumnId = (): LayoutColumnId => createStableId<LayoutColumnId>();
+export const createLayoutRowId = (): LayoutRowId => createStableId<LayoutRowId>();
+export const createFunctionParameterId = (): FunctionParameterId => createStableId<FunctionParameterId>();
+export const createScopeId = (): ScopeId => createStableId<ScopeId>();
+export const createLogicBranchId = (): LogicBranchId => createStableId<LogicBranchId>();
 
 export interface JabrDocumentV1 {
   readonly schemaVersion: typeof DOCUMENT_SCHEMA_VERSION;
@@ -125,13 +136,13 @@ export interface ExprBlock extends BlockBase<'expr'> {
 export type LogicKind = 'if' | 'for' | 'while' | 'match';
 
 export interface LogicBranch {
-  readonly id: string;
+  readonly id: LogicBranchId;
   readonly conditionSource?: string;
   readonly blocks: readonly DocumentBlock[];
 }
 
 export interface LogicBlock extends BlockBase<'logic'> {
-  readonly scopeId: string;
+  readonly scopeId: ScopeId;
   readonly kind: LogicKind;
   readonly branches: readonly LogicBranch[];
   /** Explicit declarations exported from this child scope. */
@@ -145,6 +156,7 @@ export interface FunctionParameter {
 
 export interface FuncBlock extends BlockBase<'func'> {
   readonly declarationId: DeclarationId;
+  readonly scopeId: ScopeId;
   readonly name: string;
   readonly parameters: readonly FunctionParameter[];
   readonly body: readonly DocumentBlock[];
@@ -237,10 +249,7 @@ function childrenOf(block: DocumentBlock): readonly DocumentBlock[] {
     case 'func':
       return block.body;
     case 'column-layout':
-      return block.rows.flatMap(row =>
-        [...row.cells].sort((a, b) => a.columnIndex - b.columnIndex)
-          .flatMap(cell => [...cell.blocks])
-      );
+      return block.rows.flatMap(row => row.cells.flatMap(cell => [...cell.blocks]));
     default:
       return [];
   }
@@ -371,6 +380,7 @@ export function assertValidDocument(value: unknown): asserts value is JabrDocume
         }
         case 'func':
           requireUnique(raw.declarationId as string, declarationIds, `${at}.declarationId`);
+          requireUnique(raw.scopeId as string, auxiliaryIds, `${at}.scopeId`);
           requireString(raw.name, `${at}.name`);
           requireArray(raw.parameters, `${at}.parameters`);
           raw.parameters.forEach((parameter, parameterIndex) => {
