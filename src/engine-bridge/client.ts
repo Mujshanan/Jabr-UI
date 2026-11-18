@@ -1,5 +1,6 @@
 import {
   assertKernelEnvelope,
+  asKernelNodeId,
   ENGINE_BRIDGE_PROTOCOL_VERSION,
   type EngineRequest,
   type EngineResponse,
@@ -27,6 +28,13 @@ export class EngineBridgeClient {
 
   private key(documentId: string, blockId: string): string {
     return `${documentId}\u0000${blockId}`;
+  }
+
+  /** Retire transient request state when a block is removed from the current document tree. */
+  removeBlock(documentId: string, blockId: string): void {
+    const key = this.key(documentId, blockId);
+    this.latestRequest.delete(key);
+    this.currentRevision.delete(key);
   }
 
   /** Called whenever the authored source revision changes, including undo/redo. */
@@ -69,10 +77,13 @@ export class EngineBridgeClient {
         response.documentId !== request.documentId ||
         response.blockId !== request.blockId ||
         response.sourceRevision !== request.sourceRevision ||
-        response.protocolVersion !== ENGINE_BRIDGE_PROTOCOL_VERSION) {
+        response.protocolVersion !== ENGINE_BRIDGE_PROTOCOL_VERSION ||
+        response.engineName !== 'jabr-engine' ||
+        typeof response.engineVersion !== 'string' || !response.engineVersion) {
       return { kind: 'stale' };
     }
 
+    asKernelNodeId(response.nodeId);
     return { kind: 'applied', response };
   }
 
