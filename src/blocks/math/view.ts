@@ -82,7 +82,7 @@ const MATH_TEMPLATES: MathTemplate[] = [
 @customElement('jabr-math-block')
 export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   static override styles = css`
-    :host { display: block; min-width: 0; }
+    jabr-math-block { display: block; min-width: 0; }
     .jabr-math-block {
       min-height: 72px;
       padding: 14px 16px;
@@ -175,6 +175,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   private latexOutput = '';
   private promptOutput: PromptOutput[] = [];
   private templateSequence = 0;
+  private inspecting = false;
 
   private readonly onMathInput = () => {
     if (!this.mathField) return;
@@ -182,7 +183,12 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     if (latex !== this.model.latex) {
       this.doc.updateBlock(this.model, { latex });
     }
-    this.refreshOutput();
+    if (this.inspecting) this.refreshOutput();
+  };
+
+  private readonly onInspectorToggle = (event: Event) => {
+    this.inspecting = (event.currentTarget as HTMLDetailsElement).open;
+    if (this.inspecting) this.refreshOutput();
   };
 
   private readonly onMathKeydown = (event: KeyboardEvent) => {
@@ -290,7 +296,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   }
 
   private refreshOutput() {
-    if (!this.mathField) return;
+    if (!this.mathField || !this.inspecting) return;
     this.latexOutput = this.mathField.getValue('latex');
     this.promptOutput = this.mathField.getPrompts().map(id => ({
       id,
@@ -331,7 +337,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
               title="Request a result unit, for example cm" @input=${this.onDisplayUnitInput} />
           </div>
         </div>
-        <details class="math-output">
+        <details class="math-output" @toggle=${this.onInspectorToggle}>
           <summary>Inspect expression and placeholders</summary>
           <h4>LaTeX source</h4>
           <pre>${this.latexOutput || 'Waiting for MathLive…'}</pre>
