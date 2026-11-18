@@ -16,29 +16,37 @@ const { WorksheetController } = await vite.ssrLoadModule('/src/worksheet/control
 const { worksheetResults } = await vite.ssrLoadModule('/src/worksheet/result-store.ts');
 const { MockEvaluationAdapter } = await vite.ssrLoadModule('/src/worksheet/mock-evaluator.ts');
 
-class FakeSlot {
+class FakeSubject {
   listeners = new Set();
-  on(listener) { this.listeners.add(listener); return { dispose: () => this.listeners.delete(listener) }; }
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return { unsubscribe: () => this.listeners.delete(listener) };
+  }
   emit(value) { for (const listener of [...this.listeners]) listener(value); }
 }
 
 function fixture(ids) {
-  const blocks = ids.map(id => ({ id, flavour: 'jabr:math', latex: 'x := 0', displayUnit: '', propsUpdated: new FakeSlot() }));
-  return { blocks, worksheet: { children: blocks, childrenUpdated: new FakeSlot() } };
+  const blocks = ids.map(id => ({ id, flavour: 'jabr:math', latex: 'x := 0', displayUnit: '' }));
+  const worksheet = { id: 'worksheet', children: blocks };
+  const store = { slots: { blockUpdated: new FakeSubject() } };
+  const update = (block, key) => store.slots.blockUpdated.emit({
+    type: 'update', id: block.id, flavour: block.flavour, props: { key },
+  });
+  return { blocks, worksheet, store, update };
 }
 
 function successAdapter() {
-  return { async evaluate(request) { return { blockId: request.blockId, requestId: request.requestId, sourceRevision: request.sourceRevision, status: 'success', resultLatex: String.raw`\boxed{fixture}` }; } };
+  return { async evaluate(request) { return { blockId: request.blockId, requestId: request.requestId, sourceRevision: request.sourceRevision, status: 'success', resultLatex: String.raw`\\boxed{fixture}` }; } };
 }
 
 test('source changes invalidate the edited row and later math rows only', async t => {
-  const { blocks, worksheet } = fixture(['cascade-before', 'cascade-edited', 'cascade-after']);
-  const controller = new WorksheetController({ documentId: 'controller-cascade-test', worksheet, adapter: successAdapter() });
+  const { blocks, worksheet, store, update } = fixture(['cascade-before', 'cascade-edited', 'cascade-after']);
+  const controller = new WorksheetController({ documentId: 'controller-cascade-test', worksheet, store, adapter: successAdapter() });
   t.after(() => controller.dispose());
   await controller.requestEvaluation(blocks[0].id);
   assert.equal(worksheetResults.get(blocks[0].id).status, 'success');
   blocks[1].latex = 'y := 2';
-  blocks[1].propsUpdated.emit({ key: 'latex' });
+  update(blocks[1], 'latex');
   assert.equal(worksheetResults.get(blocks[0].id).status, 'success');
   assert.equal(worksheetResults.get(blocks[1].id).status, 'idle');
   assert.equal(worksheetResults.get(blocks[1].id).sourceRevision, 1);
@@ -47,8 +55,8 @@ test('source changes invalidate the edited row and later math rows only', async 
 });
 
 test('real Yjs UndoManager undo and redo trigger controller invalidation', t => {
-  const { blocks, worksheet } = fixture(['yjs-undo-redo-source']);
-  const controller = new WorksheetController({ documentId: 'controller-yjs-undo-redo-test', worksheet });
+  const { blocks, worksheet, store, update } = fixture(['yjs-undo-redo-source']);
+  const controller = new WorksheetController({ documentId: 'controller-yjs-undo-redo-test', worksheet, store });
   t.after(() => controller.dispose());
 
   const ydoc = new Y.Doc();
@@ -58,7 +66,7 @@ test('real Yjs UndoManager undo and redo trigger controller invalidation', t => 
   source.observe(event => {
     if (!event.keysChanged.has('latex')) return;
     blocks[0].latex = source.get('latex');
-    blocks[0].propsUpdated.emit({ key: 'latex' });
+    update(blocks[0], 'latex');
   });
 
   source.set('latex', 'x := 1');
@@ -75,25 +83,25 @@ test('real Yjs UndoManager undo and redo trigger controller invalidation', t => 
 });
 
 test('display-unit changes do not invalidate source results', t => {
-  const { blocks, worksheet } = fixture(['display-unit-source']);
-  const controller = new WorksheetController({ documentId: 'controller-display-unit-test', worksheet });
+  const { blocks, worksheet, store, update } = fixture(['display-unit-source']);
+  const controller = new WorksheetController({ documentId: 'controller-display-unit-test', worksheet, store });
   t.after(() => controller.dispose());
-  blocks[0].propsUpdated.emit({ key: 'displayUnit' });
+  update(blocks[0], 'displayUnit');
   assert.equal(worksheetResults.get(blocks[0].id).sourceRevision, 0);
   assert.equal(worksheetResults.get(blocks[0].id).status, 'idle');
 });
 
 test('a delayed response cannot overwrite a newer source revision', async t => {
-  const { blocks, worksheet } = fixture(['stale-response-source']);
+  const { blocks, worksheet, store, update } = fixture(['stale-response-source']);
   let resolveEvaluation;
   const adapter = { evaluate: () => new Promise(resolve => { resolveEvaluation = resolve; }) };
-  const controller = new WorksheetController({ documentId: 'controller-stale-response-test', worksheet, adapter });
+  const controller = new WorksheetController({ documentId: 'controller-stale-response-test', worksheet, store, adapter });
   t.after(() => controller.dispose());
   const pending = controller.requestEvaluation(blocks[0].id);
   assert.equal(worksheetResults.get(blocks[0].id).status, 'pending');
   blocks[0].latex = 'newer source';
-  blocks[0].propsUpdated.emit({ key: 'latex' });
-  resolveEvaluation({ blockId: blocks[0].id, requestId: 1, sourceRevision: 0, status: 'success', resultLatex: String.raw`\boxed{stale}` });
+  update(blocks[0], 'latex');
+  resolveEvaluation({ blockId: blocks[0].id, requestId: 1, sourceRevision: 0, status: 'success', resultLatex: String.raw`\\boxed{stale}` });
   await pending;
   assert.equal(worksheetResults.get(blocks[0].id).status, 'idle');
   assert.equal(worksheetResults.get(blocks[0].id).resultLatex, '');
@@ -103,7 +111,7 @@ test('a delayed response cannot overwrite a newer source revision', async t => {
 test('mock evaluator returns only exact registered fixtures and explicit errors', async () => {
   const adapter = new MockEvaluationAdapter();
   const base = { documentId: 'mock-test', blockId: 'mock-block', requestId: 7, sourceRevision: 2, displayUnit: '' };
-  const success = await adapter.evaluate({ ...base, latex: String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}` });
+  const success = await adapter.evaluate({ ...base, latex: String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}` });
   assert.equal(success.status, 'success');
   assert.match(success.resultLatex ?? '', /MOCK/);
   const intentionalError = await adapter.evaluate({ ...base, latex: 'MOCK_ERROR' });
@@ -114,22 +122,22 @@ test('mock evaluator returns only exact registered fixtures and explicit errors'
 });
 
 test('default controller adapter reports unavailable rather than pretending to calculate', async t => {
-  const { blocks, worksheet } = fixture(['unavailable-source']);
-  const controller = new WorksheetController({ documentId: 'controller-unavailable-test', worksheet });
+  const { blocks, worksheet, store } = fixture(['unavailable-source']);
+  const controller = new WorksheetController({ documentId: 'controller-unavailable-test', worksheet, store });
   t.after(() => controller.dispose());
   await controller.requestEvaluation(blocks[0].id);
   assert.equal(worksheetResults.get(blocks[0].id).status, 'unavailable');
 });
 
-test('removed blocks lose their subscriptions and transient result state', async t => {
-  const { blocks, worksheet } = fixture(['removed-source']);
-  const controller = new WorksheetController({ documentId: 'controller-remove-test', worksheet, adapter: successAdapter() });
+test('removed blocks clear transient result state and ignore later updates', async t => {
+  const { blocks, worksheet, store, update } = fixture(['removed-source']);
+  const controller = new WorksheetController({ documentId: 'controller-remove-test', worksheet, store, adapter: successAdapter() });
   t.after(() => controller.dispose());
   await controller.requestEvaluation(blocks[0].id);
   assert.equal(worksheetResults.get(blocks[0].id).status, 'success');
   worksheet.children = [];
-  worksheet.childrenUpdated.emit(undefined);
+  store.slots.blockUpdated.emit({ type: 'delete', id: blocks[0].id, flavour: 'jabr:math' });
   assert.equal(worksheetResults.get(blocks[0].id).sourceRevision, 0);
-  blocks[0].propsUpdated.emit({ key: 'latex' });
+  update(blocks[0], 'latex');
   assert.equal(worksheetResults.get(blocks[0].id).sourceRevision, 0);
 });
