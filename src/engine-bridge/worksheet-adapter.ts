@@ -4,6 +4,8 @@ import type { EvaluateBlockRequest, EvaluateBlockResponse } from './contracts';
 
 /** Adapts the versioned Engine protocol to the worksheet provider interface. */
 export class EngineBridgeEvaluationAdapter implements EvaluationAdapter {
+  private readonly sessionId = globalThis.crypto.randomUUID();
+
   constructor(private readonly client: EngineBridgeClient) {}
 
   removeBlock(documentId: string, blockId: string): void {
@@ -18,7 +20,7 @@ export class EngineBridgeEvaluationAdapter implements EvaluationAdapter {
     const bridgeRequest: EvaluateBlockRequest = {
       protocolVersion: 1,
       engineName: 'jabr-engine',
-      requestId: `ui-${request.requestId}`,
+      requestId: `${this.sessionId}:${request.requestId}`,
       documentId: request.documentId,
       blockId: request.blockId,
       sourceRevision: request.sourceRevision,
