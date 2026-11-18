@@ -15,7 +15,9 @@ const { MockEngineTransport } = await vite.ssrLoadModule('/src/engine-bridge/moc
 const { asKernelNodeId } = await vite.ssrLoadModule('/src/engine-bridge/contracts.ts');
 const { EngineBridgeEvaluationAdapter } = await vite.ssrLoadModule('/src/engine-bridge/worksheet-adapter.ts');
 
-const request = (requestId, sourceRevision, latex = 'fixture') => ({
+const DEFAULT_FIXTURE = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
+
+const request = (requestId, sourceRevision, latex = DEFAULT_FIXTURE) => ({
   protocolVersion: 1,
   engineName: 'jabr-engine',
   requestId,
@@ -118,7 +120,7 @@ test('worksheet adapter translates bridge success and shared diagnostics', async
     blockId: 'block-adapter',
     requestId: 4,
     sourceRevision: 2,
-    latex: 'fixture',
+    latex: DEFAULT_FIXTURE,
     displayUnit: 'kN',
   });
   assert.equal(result.status, 'success');
