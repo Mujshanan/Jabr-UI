@@ -72,14 +72,14 @@ Complete and review all three specifications before starting M1:
 
 Also freeze:
 
-- JSON Envelope v1 and snapshot composition.
-- Shared diagnostic taxonomy and source-span conventions.
-- Math↔Kernel public signatures and dependency direction.
+- Generic JSON Envelope v1, diagnostic taxonomy and source-span conventions for the Kernel contract.
+- Math-owned analysis/evaluation DTOs and the Engine adapter contract.
+- Engine-owned worksheet revisions, authored/derived calculation records, result cache, snapshots and stale-result policy; these are explicitly outside Kernel.
 - Draw figure schema v1, owned by Jabr Diagram.
 - Canonical cross-repository smoke fixture contract.
 - Provisional performance targets and benchmark methodology.
 
-**M1 is blocked until the three specifications are reviewed and the relevant contracts are frozen.** Documentation drafts alone do not count as approval.
+**M1 is blocked until the three specifications are reviewed and the relevant contracts are frozen.** Documentation drafts alone do not count as approval. Under Architecture A, Kernel freezes only generic identity/port, graph, span, diagnostic and envelope contracts; the Engine lifecycle contract is a separate Engine-owned deliverable.
 
 ### M1 — Math foundation
 
