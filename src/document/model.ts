@@ -200,8 +200,6 @@ function requireUnique(value: string, set: Set<string>, path: string): void {
   set.add(value);
 }
 
-const DECLARATION_TYPES = new Set(['assign', 'func']);
-
 function childrenOf(block: DocumentBlock): readonly DocumentBlock[] {
   switch (block.type) {
     case 'logic':
@@ -328,7 +326,7 @@ export function assertValidDocument(value: unknown): asserts value is JabrDocume
           }
           break;
         case 'logic': {
-          requireString(raw.scopeId, `${at}.scopeId`);
+          requireUnique(raw.scopeId as string, auxiliaryIds, `${at}.scopeId`);
           if (!['if', 'for', 'while', 'match'].includes(String(raw.kind))) throw new Error(`${at}.kind is invalid.`);
           requireArray(raw.branches, `${at}.branches`);
           requireArray(raw.exports, `${at}.exports`);
@@ -359,7 +357,8 @@ export function assertValidDocument(value: unknown): asserts value is JabrDocume
         case 'column-layout': {
           requireArray(raw.columns, `${at}.columns`);
           requireArray(raw.rows, `${at}.rows`);
-          if (raw.columns.length < 2) throw new Error(`${at}.columns must contain at least two columns.`);
+          const layoutColumns = raw.columns as unknown[];
+          if (layoutColumns.length < 2) throw new Error(`${at}.columns must contain at least two columns.`);
           const columnIds = new Set<string>();
           raw.columns.forEach((column, columnIndex) => {
             if (!isRecord(column)) throw new Error(`${at}.columns[${columnIndex}] must be an object.`);
@@ -378,7 +377,7 @@ export function assertValidDocument(value: unknown): asserts value is JabrDocume
             row.cells.forEach((cell, cellIndex) => {
               if (!isRecord(cell)) throw new Error(`${at}.rows[${rowIndex}].cells[${cellIndex}] must be an object.`);
               if (!Number.isInteger(cell.columnIndex) || (cell.columnIndex as number) < 0 ||
-                  (cell.columnIndex as number) >= raw.columns!.length) {
+                  (cell.columnIndex as number) >= layoutColumns.length) {
                 throw new Error(`${at}.rows[${rowIndex}].cells[${cellIndex}].columnIndex is invalid.`);
               }
               const columnIndex = cell.columnIndex as number;
