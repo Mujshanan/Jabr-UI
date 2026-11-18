@@ -36,6 +36,7 @@ Computed results and diagnostics are transient UI state, never Yjs block propert
 Run and record:
 
 - `pnpm test:controller`
+- `pnpm test:bridge`
 - `pnpm typecheck`
 - `pnpm build`
 - Chromium E2E: enable mock evaluator, press `=` on the default sample, update the actual BlockSuite model, then call the real `doc.undo()`/`doc.redo()` history methods and verify controller revisions and result invalidation.
