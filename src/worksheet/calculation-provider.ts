@@ -18,6 +18,8 @@ export type EvaluationResponse = {
 
 export interface EvaluationAdapter {
   evaluate(request: EvaluationRequest): Promise<EvaluationResponse>;
+  setCurrentRevision?(documentId: string, blockId: string, revision: number): void;
+  dispose?(): void;
 }
 
 /**
@@ -29,7 +31,7 @@ export interface CalculationProvider {
   nextRequestId(): number;
   registerBlock(blockId: string): void;
   currentRevision(blockId: string): number;
-  invalidateFrom(blockId: string, orderedBlockIds: readonly string[]): Array<{ blockId: string; sourceRevision: number }>;
+  invalidateFrom(documentId: string, blockId: string, orderedBlockIds: readonly string[]): Array<{ blockId: string; sourceRevision: number }>;
   removeBlock(blockId: string): void;
   evaluate(request: EvaluationRequest): Promise<EvaluationResponse | null>;
   isCurrent(request: EvaluationRequest): boolean;
@@ -57,6 +59,7 @@ export class LocalOrderedCalculationProvider implements CalculationProvider {
   }
 
   invalidateFrom(
+    documentId: string,
     blockId: string,
     orderedBlockIds: readonly string[]
   ): Array<{ blockId: string; sourceRevision: number }> {
@@ -67,6 +70,7 @@ export class LocalOrderedCalculationProvider implements CalculationProvider {
       const revision = this.currentRevision(id) + 1;
       this.revisions.set(id, revision);
       this.latestRequests.delete(id);
+      this.adapter.setCurrentRevision?.(documentId, id, revision);
       invalidated.push({ blockId: id, sourceRevision: revision });
     }
     return invalidated;
@@ -98,5 +102,6 @@ export class LocalOrderedCalculationProvider implements CalculationProvider {
     this.disposed = true;
     this.latestRequests.clear();
     this.revisions.clear();
+    this.adapter.dispose?.();
   }
 }
