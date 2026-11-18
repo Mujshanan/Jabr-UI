@@ -79,9 +79,25 @@ Also freeze:
 - Canonical cross-repository smoke fixture contract.
 - Provisional performance targets and benchmark methodology.
 
-**M1 is blocked until the three specifications are reviewed and the relevant contracts are frozen.** Documentation drafts alone do not count as approval. Under Architecture A, Kernel freezes only generic identity/port, graph, span, diagnostic and envelope contracts; the Engine lifecycle contract is a separate Engine-owned deliverable.
+**Accepted baseline (2026-11-19):** the user approved all three specifications as the M0.5 baseline. Preserve the dedicated `jabr-kernel-api` public-contract crate direction; Kernel implementation internals remain private. Under Architecture A, Kernel freezes only generic identity/port, graph, span, diagnostic and envelope contracts; the Engine lifecycle contract is a separate Engine-owned deliverable.
 
-### M1 — Math foundation
+### M1 — Document Model and Persistent Identity (JABR-ARCH-CE-001)
+
+This is the M1 milestone of the approved Calculation Engine Block Taxonomy. It is a cross-cutting document-model milestone owned primarily by Jabr-UI, not the separate Math repository's M1 label below.
+
+- Define the versioned authored document schema and supported block discriminants.
+- Preserve stable block IDs and declaration IDs independently of display names and array positions.
+- Model the seven calculation categories; keep heading/text informational blocks separate.
+- Define stable Table row/column/cell identities and Matrix entry identities.
+- Define Logic lexical-scope/branch identities and Func parameter/declaration identities without implementing their execution semantics.
+- Model ColumnLayoutBlock as composition only, with rows top-to-bottom and cells left-to-right within each row.
+- Validate identity uniqueness, table references, matrix dimensions, schema versions and layout order.
+- Keep authored source and preferences in BlockSuite/Yjs; reject derived results and execution metadata from authored serialization.
+- Add round-trip, migration-boundary, identity-preservation and row-major reading-order tests.
+
+Implementation: [Jabr Authored Document Model v1](docs/specs/jabr-authored-document-model-v1.md). The initial model contract and validation functions are implemented; live BlockSuite adapter and browser persistence/undo-redo verification remain exit requirements.
+
+### Math repository M1 — Math foundation
 
 - Stabilize the Math facade and AST/value contracts.
 - Implement the unit system through U0–U7 as defined by its specification.
@@ -166,4 +182,4 @@ Required regression: serialize → deserialize → evaluate/recalculate → comp
 
 ## Specification and implementation authorization
 
-The three documents are proposals until reviewed and accepted. This roadmap update authorizes documentation work only. It does not authorize Kernel source changes, API-crate implementation/extraction, unrelated repository migrations, or merging any existing pull request.
+The three M0.5 specifications have been accepted as the architecture baseline. This M1 implementation is scoped to the authored document model in Jabr-UI. It does not authorize Kernel source changes, API-crate implementation/extraction, unrelated repository migrations, or merging any existing pull request.
