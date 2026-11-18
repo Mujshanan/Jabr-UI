@@ -11,7 +11,9 @@ import { JabrRootSchema } from './editor/root';
 import { JabrWorksheetSchema } from './editor/worksheet';
 import { JabrBlockExtensions } from './editor/specs';
 import { WorksheetController, type WorksheetModelLike } from './worksheet/controller';
-import { MockEvaluationAdapter } from './worksheet/mock-evaluator';
+import { EngineBridgeClient } from './engine-bridge/client';
+import { MockEngineTransport } from './engine-bridge/mock-engine';
+import { EngineBridgeEvaluationAdapter } from './engine-bridge/worksheet-adapter';
 import { worksheetResults } from './worksheet/result-store';
 
 if (!customElements.get('editor-host')) effects();
@@ -48,7 +50,9 @@ const collectionPersistence = new IndexeddbPersistence(
   `${DATABASE_NAME}:collection`,
   collection.doc
 );
-const mockAdapter = new MockEvaluationAdapter();
+const mockAdapter = new EngineBridgeEvaluationAdapter(
+  new EngineBridgeClient(new MockEngineTransport())
+);
 let mockEnabled = false;
 let documentPersistence: IndexeddbPersistence | null = null;
 let worksheetId = '';
@@ -90,8 +94,11 @@ async function initializeDocument() {
             requestId: request.requestId,
             sourceRevision: request.sourceRevision,
             status: 'unavailable',
-            diagnostic: 'Enable the mock evaluator or connect Jabr-CLI.',
+            diagnostic: 'Enable the mock evaluator or connect Jabr-engine.',
           }),
+      setCurrentRevision: (documentId, blockId, revision) => mockAdapter.setCurrentRevision(documentId, blockId, revision),
+      removeBlock: (documentId, blockId) => mockAdapter.removeBlock(documentId, blockId),
+      dispose: () => mockAdapter.dispose(),
     },
   });
   evaluationRequestListener = (event: Event) => {
@@ -126,10 +133,10 @@ async function initializeDocument() {
     mockControl.textContent = mockEnabled ? 'Disable mock evaluator' : 'Enable mock evaluator';
     statusElement.textContent = mockEnabled
       ? 'Local document ready · mock evaluator enabled (fixtures only)'
-      : 'Local document ready · CLI evaluator unavailable';
+      : 'Local document ready · Engine bridge unavailable';
   });
 
-  statusElement.textContent = 'Local document ready · CLI evaluator unavailable';
+  statusElement.textContent = 'Local document ready · Engine bridge unavailable';
 }
 
 void initializeDocument().catch(error => {

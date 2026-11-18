@@ -20,7 +20,8 @@ The product uses AFFiNE/BlockSuite as its document host. The following is the ow
 ## 2. Ownership boundaries
 
 - **AFFiNE/BlockSuite:** production editor shell, root/page lifecycle, block identity/order, Yjs persistence/collaboration, document undo/redo, host selection and drag/drop.
-- **Jabr-UI:** custom block schemas/views, document presentation, contextual editing controls, transient result state, orchestration, host adapters, and integration tests.
+- **Jabr-UI:** custom block schemas/views, document presentation, contextual editing controls, transient result state, rendering, host adapters, and integration tests. Jabr-UI does not own worksheet orchestration, graph construction, bindings, dependency resolution, scheduling, or recalculation.
+- **Jabr-engine:** owns cross-block worksheet orchestration, graph construction, binding resolution, scheduling, invalidation, recalculation, and calculation-result lifecycle. It consumes durable BlockSuite block IDs through the Engine bridge and resolves them to Kernel NodeIds.
 - **Jabr-math:** parsing/evaluation/calculation semantics and Rust engine API. Its test UI remains a minimal engine workbench.
 - **Jabr-table:** typed tabular data, lookup/aggregation, interchange, and dense matrix/vector primitives. No UI, BlockSuite, Yjs, or formula parser.
 - **Jabr-diagram:** diagram model, geometry, rendering/export core and its independently testable workbench. No final product shell.
@@ -47,15 +48,9 @@ Each engine adapter exposes:
 - `execute(request): Promise<Response>`
 - `dispose(): void` where the runtime owns resources.
 
-Each request/response includes:
-- `protocolVersion`
-- `engineName`
-- `engineVersion`
-- `requestId`
-- `documentId` and `blockId` when invoked from a document
-- `sourceRevision` or `inputRevision`
-- A discriminated success/error result
-- Structured diagnostics with stable code, severity, message, and optional source span/path.
+Each request includes `protocolVersion`, `engineName`, `requestId`, `documentId`, durable string `blockId`, `sourceRevision`, an operation name, and a typed payload. Each response echoes the correlation fields, adds `engineVersion` and the resolved numeric Kernel `nodeId`, and carries a Kernel `Envelope<T>`.
+
+The envelope wire shape is Kernel schema version 1: `schema_version`, `result`, and `diagnostics`. Do not add a second UI-owned envelope or silently accept another schema version. Request/response protocol versioning is separate from the Kernel envelope schema version.
 
 Use JSON-compatible, versioned DTOs at the WASM boundary. Prefer integer IDs/strings and explicit tagged unions; do not depend on JS floating-point serialization for exact engineering quantities. Exact decimals/rationals should be represented as canonical strings or tagged values where supported by the engine. Large binary/typed-array payloads may use explicit transfer buffers only after profiling demonstrates need.
 
@@ -84,8 +79,9 @@ Use a shared normalized diagnostic shape:
 - `code`: stable machine-readable identifier
 - `severity`: info | warning | error
 - `message`: user-readable message
-- `location`: optional source range, cell coordinate, matrix index, or diagram object ID
-- `details`: optional safe structured metadata
+- `span`: optional Kernel `Span`, represented as a UTF-8 byte-based half-open range (`start` inclusive, `end` exclusive). It is used only when a source-text range exists.
+
+Do not invent a second `location`/path diagnostic shape. Non-source object references belong in the owning engine's typed result/context DTO, not in a redefined Kernel Diagnostic.
 
 The UI may translate diagnostics into block-local messages, cell markers, or source annotations. Do not display raw Rust panic text as the user-facing message. A panic must be contained at the FFI boundary and surfaced as an internal engine failure with a correlation/request ID.
 
@@ -179,10 +175,9 @@ The UI may translate diagnostics into block-local messages, cell markers, or sou
 - Diagram model data is authored and persisted; viewport/selection/tool state is transient unless explicitly saved as a view preference.
 
 **Rust bridge**
-- The Jabr-diagram repository is the designated owner of diagram model/geometry behavior.
-- A Rust bridge contract is specified as the target, but the current repository inspection did not establish a Cargo workspace or an existing Rust/WASM API. Do not claim that such a bridge already exists.
-- Before selecting Rust/WASM, confirm the engine's implementation language and ownership. If the core is Rust, expose versioned wasm-bindgen DTO operations for validate, transform, bounds/layout, and export; keep pointer/selection UI state in Jabr-UI.
-- If the current engine core is TypeScript, do not introduce Rust solely to satisfy architectural symmetry. Define the same typed adapter contract and preserve the option to add Rust if a concrete need appears.
+- The Jabr-diagram repository is the designated owner of diagram model/geometry behavior. The agreed architectural direction is a Rust-owned core delivered to the browser through WebAssembly, recorded in Diagram PR #9; this is a decision, not a claim that the Cargo/WASM runtime has already been implemented.
+- Jabr-UI must consume Diagram through the typed Engine/Diagram adapter and must not own canonical geometry or serialization semantics.
+- The Rust core should expose versioned operations for validation, transforms, bounds/layout, and export when its public API is ready; keep viewport, pointer, and selection state in Jabr-UI.
 - SVG export must be deterministic and independent of editor chrome; sanitize untrusted SVG before insertion/rendering.
 
 ### 4.7 Text / prose
@@ -197,3 +192,8 @@ Use AFFiNE native paragraph blocks whenever possible. No Rust engine bridge is r
 - Jabr-UI tests adapter behavior with deterministic fixtures, including success, validation error, engine unavailable, panic/transport failure, cancellation, and stale response.
 - End-to-end document tests cover mixed paragraphs and all supported blocks, reload, undo/redo, theme changes, narrow widths, and engine disconnection.
 - No block is production-ready until its document data contract, UI state contract, and engine adapter contract are all tested.
+
+
+## 6. BlockSuite identity and Kernel NodeId mapping
+
+BlockSuite `model.id` is the durable authored block identity and remains a string. Jabr-UI sends it unchanged as `blockId`; it must not hash UUIDs or allocate Kernel IDs in the browser. Jabr-engine owns the per-document one-to-one registry from BlockSuite block IDs to Kernel `NodeId` values, persisted with Engine-owned document identity/snapshot metadata. Engine allocates IDs through Kernel's allocator, validates the non-zero JavaScript-safe range, and never reuses an ID within a document identity history. The mapping survives reload, undo/redo, and collaborative edits; deletion retires the mapping and undo restores it. Responses include the resolved numeric `nodeId` for correlation. See [identity mapping decision](../src/engine-bridge/identity.md).

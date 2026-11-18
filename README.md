@@ -4,7 +4,7 @@ Jabr UI is the complete BlockSuite-based worksheet product UI. It is developed i
 
 ## Calculation ownership
 
-The UI sends authored source and its current document/source revision to the Engine boundary. Engine owns graph construction, dependency resolution and recalculation; Math parses/evaluates; Kernel provides generic storage and revision/snapshot primitives. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
+The UI sends authored source, the durable BlockSuite block ID, and its current document/source revision through the versioned Engine bridge. Jabr-engine owns block-to-NodeId resolution, graph construction, bindings, dependency resolution, invalidation, scheduling and recalculation; Jabr-math owns parsing and mathematical evaluation; Kernel provides generic IDs, graph, revision/snapshot, envelope and diagnostic primitives. Jabr-UI owns presentation and transient rendering state only—not worksheet orchestration or calculation authority. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
 
 ## Current worksheet blocks
 
@@ -31,7 +31,7 @@ Computed results, statuses, diagnostics, request IDs, and source revisions remai
 
 ## Mock evaluator
 
-The standalone prototype includes an opt-in **Enable mock evaluator** control. It uses exact, pre-authored fixtures only; it does not parse expressions, resolve symbols, evaluate arithmetic, or interpret units. The default sample source has a canned mock result. The exact source `MOCK_ERROR` demonstrates an intentional error, while unregistered source strings return an explicit “No mock fixture” error. Disable the mock to restore the unavailable-Engine/Math state.
+The standalone prototype includes an opt-in **Enable mock evaluator** control. It uses exact, pre-authored fixtures only; it does not parse expressions, resolve symbols, evaluate arithmetic, or interpret units. The default sample source has a canned mock result. The exact source `MOCK_ERROR` demonstrates an intentional error, while unregistered source strings return an explicit “No mock fixture” error. Disable the mock to restore the unavailable-Engine state.
 
 Mock results are UI fixtures, not engineering calculations and must never be used for design decisions.
 
@@ -57,12 +57,13 @@ pnpm install
 pnpm dev
 ```
 
-Use Add math block or Add text block to append worksheet content. Press `=` in a math block to request an evaluation. Enable the mock evaluator to see registered fixture behavior. Actual calculation remains unavailable until the Jabr-engine and Jabr Math integration is connected.
+Use Add math block or Add text block to append worksheet content. Press `=` in a math block to request an evaluation. Enable the mock evaluator to see registered fixture behavior. Actual calculation remains unavailable until the Jabr-engine and Jabr-math bridge integration is connected.
 
 ## Validation
 
 ```sh
 pnpm test:controller
+pnpm test:bridge
 pnpm typecheck
 pnpm build
 ```

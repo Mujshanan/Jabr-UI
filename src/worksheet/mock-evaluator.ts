@@ -1,4 +1,4 @@
-import type { EvaluationAdapter, EvaluationRequest, EvaluationResponse } from './controller';
+import type { EvaluationAdapter, EvaluationRequest, EvaluationResponse } from './calculation-provider';
 
 /**
  * Deterministic UI fixture adapter. It performs no parsing or calculation:
