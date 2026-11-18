@@ -11,7 +11,9 @@ import { JabrRootSchema } from './editor/root';
 import { JabrWorksheetSchema } from './editor/worksheet';
 import { JabrBlockExtensions } from './editor/specs';
 import { WorksheetController, type WorksheetModelLike } from './worksheet/controller';
-import { MockEvaluationAdapter } from './worksheet/mock-evaluator';
+import { EngineBridgeClient } from './engine-bridge/client';
+import { MockEngineTransport } from './engine-bridge/mock-engine';
+import { EngineBridgeEvaluationAdapter } from './engine-bridge/worksheet-adapter';
 import { worksheetResults } from './worksheet/result-store';
 
 if (!customElements.get('editor-host')) effects();
@@ -48,7 +50,9 @@ const collectionPersistence = new IndexeddbPersistence(
   `${DATABASE_NAME}:collection`,
   collection.doc
 );
-const mockAdapter = new MockEvaluationAdapter();
+const mockAdapter = new EngineBridgeEvaluationAdapter(
+  new EngineBridgeClient(new MockEngineTransport())
+);
 let mockEnabled = false;
 let documentPersistence: IndexeddbPersistence | null = null;
 let worksheetId = '';
