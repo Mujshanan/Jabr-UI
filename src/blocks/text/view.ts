@@ -6,8 +6,8 @@ import type { JabrTextModel } from './schema';
 @customElement('jabr-text-block')
 export class JabrTextBlockView extends BlockComponent<JabrTextModel> {
   static override styles = css`
-    :host { display: block; min-width: 0; }
-    textarea {
+    jabr-text-block { display: block; min-width: 0; }
+    jabr-text-block textarea {
       display: block;
       box-sizing: border-box;
       width: 100%;
@@ -21,11 +21,11 @@ export class JabrTextBlockView extends BlockComponent<JabrTextModel> {
       font: 14px/1.6 Inter, ui-sans-serif, system-ui, sans-serif;
       outline: none;
     }
-    textarea:focus {
+    jabr-text-block textarea:focus {
       border-color: #dbe3ed;
       background: #fff;
     }
-    textarea::placeholder { color: #a0aab8; }
+    jabr-text-block textarea::placeholder { color: #a0aab8; }
   `;
 
   private readonly onInput = (event: Event) => {
