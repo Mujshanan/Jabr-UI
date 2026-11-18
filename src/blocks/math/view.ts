@@ -82,7 +82,7 @@ const MATH_TEMPLATES: MathTemplate[] = [
 @customElement('jabr-math-block')
 export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   static override styles = css`
-    jabr-math-block { display: block; min-width: 0; }
+    :host { display: block; min-width: 0; }
     .jabr-math-block {
       min-height: 72px;
       padding: 14px 16px;
