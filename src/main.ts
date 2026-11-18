@@ -67,9 +67,6 @@ async function initializeDocument() {
     const rootId = doc.addBlock('jabr:root' as never, { title: 'Untitled calculation' } as never);
     worksheetId = doc.addBlock('jabr:worksheet' as never, {} as never, rootId);
     doc.addBlock('jabr:math' as never, { latex: DEFAULT_MATH_LATEX } as never, worksheetId);
-  } else {
-    const root = doc.root;
-    worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet' as never, {} as never, root.id);
   }
 
   const rootModel = doc.root;
