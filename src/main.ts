@@ -65,7 +65,6 @@ async function initializeDocument() {
   );
   await documentPersistence.whenSynced;
   doc.load();
-  const store = doc.getStore();
 
   if (!doc.root) {
     const rootId = doc.addBlock('jabr:root' as never, { title: 'Untitled calculation' } as never);
@@ -82,7 +81,7 @@ async function initializeDocument() {
   worksheetController = new WorksheetController({
     documentId: DOCUMENT_ID,
     worksheet: worksheetModel as unknown as WorksheetModelLike,
-    store,
+    store: doc,
     adapter: {
       evaluate: request => mockEnabled
         ? mockAdapter.evaluate(request)
@@ -113,7 +112,7 @@ async function initializeDocument() {
     });
   }
 
-  const std = new BlockStdScope({ store, extensions: JabrBlockExtensions });
+  const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
   editorElement.replaceChildren(std.render());
 
   addMathControl.addEventListener('click', () => {
