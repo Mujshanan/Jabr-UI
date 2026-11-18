@@ -148,7 +148,7 @@ These are initial acceptance targets, not measured claims. Record hardware, OS, 
 | Save a 1 MB worksheet document | < 500 ms |
 | Reopen a 1 MB worksheet document | < 500 ms |
 
-Benchmark computation separately from rendering and persistence. Use representative dependency graphs and realistic table/figure fixtures.
+Benchmark computation separately from rendering and persistence. Use representative sequential worksheet programs and realistic table/figure fixtures.
 
 ## Canonical cross-repository smoke fixture
 
