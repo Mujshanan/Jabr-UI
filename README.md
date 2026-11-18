@@ -63,6 +63,7 @@ Use Add math block or Add text block to append worksheet content. Press `=` in a
 
 ```sh
 pnpm test:controller
+pnpm test:bridge
 pnpm typecheck
 pnpm build
 ```
