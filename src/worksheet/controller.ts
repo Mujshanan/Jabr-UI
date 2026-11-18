@@ -101,6 +101,7 @@ export class WorksheetController {
 
   private onBlockSourceChanged(blockId: string): void {
     const invalidated = this.provider.invalidateFrom(
+      this.options.documentId,
       blockId,
       this.mathBlocks().map(block => block.id)
     );
