@@ -83,6 +83,7 @@ export class WorksheetController {
         this.provider.removeBlock(blockId);
         worksheetResults.clear(blockId);
         this.knownBlockIds.delete(blockId);
+        this.initializedResultBlocks.delete(blockId);
       }
     }
     for (const block of current.values()) {
