@@ -17,7 +17,7 @@ export class MockEngineTransport implements EngineTransport {
   ): Promise<EngineResponse<TResult>> {
     await Promise.resolve();
     const payload = request.payload as EvaluateBlockPayload;
-    const defaultFixture = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
+    const defaultFixture = DEFAULT_MATH_LATEX;
     const isIntentionalError = payload.latex === 'MOCK_ERROR';
     const isKnownFixture = payload.latex === defaultFixture;
     const result: EvaluateBlockResult = isKnownFixture
