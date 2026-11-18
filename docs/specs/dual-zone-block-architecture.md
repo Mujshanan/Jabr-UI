@@ -139,7 +139,7 @@ V1 evaluates the worksheet as a sequential program. An authored change schedules
 authored source/order changes
           |
           v
-Engine advances source revision and execution generation
+Engine advances source revisions and per-target calculation generations, and assigns a worksheet execution ID
           |
           v
 Engine creates a fresh execution environment
@@ -159,7 +159,7 @@ Jabr-UI displays current derived output
 
 Rules:
 - Source/order changes invalidate current execution output and schedule a top-to-bottom rerun.
-- Engine owns authoritative source revisions and worksheet execution generations.
+- Engine owns authoritative per-target source revisions and per-target calculation generations; a worksheet execution ID groups one top-to-bottom run.
 - Variables become available only after successful assignment; forward references are not supported in V1.
 - Successful assignments affect subsequent statements, not earlier captured results.
 - Conditional expressions and blocks execute only selected branches.
@@ -180,7 +180,7 @@ Rules:
 ### 7.1 Ownership
 
 - BlockSuite/Yjs owns authored document history and undo/redo.
-- Jabr Engine owns monotonic source revisions, worksheet execution generations, execution attempts, immutable execution snapshots and result-cache validity.
+- Jabr Engine owns monotonic per-target source revisions, per-target calculation generations, worksheet execution IDs, execution attempts, immutable execution snapshots and result-cache validity.
 - Engine owns the sequential execution environment and all variable/assignment state.
 - Kernel supplies generic infrastructure only; it does not supply worksheet revisions, variable state or snapshots.
 - Jabr-UI associates displayed output with Engine-provided source/execution identity and does not invent a second revision authority.
@@ -193,7 +193,8 @@ A calculation record is conceptually:
 pub struct WorksheetExecutionRecord {
     pub authored_source_ref: SourceIdentity,
     pub source_revision: EngineRevision,
-    pub execution_generation: ExecutionGeneration,
+    pub execution_generation: CalculationGeneration,
+    pub worksheet_execution_id: WorksheetExecutionId,
     pub status: ExecutionStatus,
     pub block_outcomes: Vec<BlockOutcome>,
     pub snapshot_ref: Option<ExecutionSnapshotId>,
@@ -207,7 +208,7 @@ The authored BlockSuite/Yjs document is the source of truth on reopen. A success
 
 ### 7.3 Undo/redo
 
-Undo/redo restores authored BlockSuite/Yjs state. Engine observes the restored/reapplied source as a new input state, advances its monotonic source revision and execution generation, creates a fresh environment and reruns from the top. Derived results are not directly undone; Engine revisions and generations never rewind.
+Undo/redo restores authored BlockSuite/Yjs state. Engine observes the restored/reapplied source as a new input state, advances the affected target's monotonic source revision, assigns new calculation generations to targets in the rerun, creates a fresh environment and reruns from the top under a new worksheet execution ID. Derived results are not directly undone; Engine revisions and generations never rewind.
 
 ## 8. Focus, selection and keyboard ownership
 
