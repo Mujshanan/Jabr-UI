@@ -8,7 +8,7 @@
 
 Jabr custom blocks must read, edit, and behave as native parts of one AFFiNE document. They must not look like independent mini-applications embedded in a page.
 
-AFFiNE is the final product and document host. Jabr-UI develops the block presentation, editing interactions, worksheet orchestration, and integration behavior. This specification establishes the common rules that every custom block follows.
+AFFiNE is the final product and document host. Jabr-UI develops the block presentation, editing interactions, and host integration behavior. Jabr-engine owns cross-block worksheet orchestration. This specification establishes the common rules that every custom block follows.
 
 The goal is consistency with the host document, not pixel-for-pixel imitation of every AFFiNE feature.
 
