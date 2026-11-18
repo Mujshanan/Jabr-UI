@@ -2,6 +2,7 @@ import 'mathlive';
 import './styles.css';
 
 import { BlockStdScope } from '@blocksuite/block-std';
+import { effects } from '@blocksuite/block-std/effects';
 import { DocCollection, Schema } from '@blocksuite/store';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { DEFAULT_MATH_LATEX, JabrMathSchema } from './blocks/math';
@@ -12,6 +13,8 @@ import { JabrBlockExtensions } from './editor/specs';
 import { WorksheetController, type WorksheetModelLike } from './worksheet/controller';
 import { MockEvaluationAdapter } from './worksheet/mock-evaluator';
 import { worksheetResults } from './worksheet/result-store';
+
+if (!customElements.get('editor-host')) effects();
 
 const DATABASE_NAME = 'jabr-ui-worksheet-v1';
 const DOCUMENT_ID = 'calculation-sheet';
@@ -109,7 +112,7 @@ async function initializeDocument() {
     });
   }
 
-  const std = new BlockStdScope({ doc, extensions: JabrBlockExtensions });
+  const std = new BlockStdScope({ store: doc, extensions: JabrBlockExtensions });
   editorElement.replaceChildren(std.render());
 
   addMathControl.addEventListener('click', () => {
