@@ -108,15 +108,18 @@ test('authored LaTeX persists across reload while transient result state resets'
 });
 
 
-test('light-DOM block hosts are block-level and text styles do not leak to unrelated textareas', async ({ page }) => {
+test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page }) => {
   const styles = await page.evaluate(() => {
     const externalTextarea = document.createElement('textarea');
     document.body.append(externalTextarea);
+    const textBlock = document.querySelector('jabr-text-block');
+    const internalTextarea = textBlock?.shadowRoot?.querySelector('textarea');
     const result = {
       rootDisplay: getComputedStyle(document.querySelector('jabr-root-block')!).display,
       worksheetDisplay: getComputedStyle(document.querySelector('jabr-worksheet-block')!).display,
       mathDisplay: getComputedStyle(document.querySelector('jabr-math-block')!).display,
-      textDisplay: getComputedStyle(document.querySelector('jabr-text-block')!).display,
+      textDisplay: getComputedStyle(textBlock!).display,
+      internalTextareaMinHeight: internalTextarea ? getComputedStyle(internalTextarea).minHeight : '',
       externalTextareaMinHeight: getComputedStyle(externalTextarea).minHeight,
     };
     externalTextarea.remove();
@@ -127,9 +130,9 @@ test('light-DOM block hosts are block-level and text styles do not leak to unrel
   expect(styles.worksheetDisplay).toBe('block');
   expect(styles.mathDisplay).toBe('block');
   expect(styles.textDisplay).toBe('block');
+  expect(styles.internalTextareaMinHeight).toBe('42px');
   expect(styles.externalTextareaMinHeight).not.toBe('42px');
 });
-
 test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
   await source.evaluate((field: Element & { getPrompts: () => string[]; __promptReadCount?: number }) => {
