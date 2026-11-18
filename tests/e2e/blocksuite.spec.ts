@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { DEFAULT_MATH_LATEX } from '../../src/blocks/math/schema';
 
 declare global {
   interface Window {
@@ -17,16 +18,8 @@ declare global {
 }
 
 async function resetLocalDocument(page: import('@playwright/test').Page) {
-  await page.goto('about:blank');
-  await page.evaluate(async () => {
-    const names = ['jabr-ui-worksheet-v1:collection', 'jabr-ui-worksheet-v1:document'];
-    await Promise.all(names.map(name => new Promise<void>(resolve => {
-      const request = indexedDB.deleteDatabase(name);
-      request.onsuccess = () => resolve();
-      request.onerror = () => resolve();
-      request.onblocked = () => resolve();
-    })));
-  });
+  // Playwright creates a fresh browser context for each test, so IndexedDB
+  // starts empty without deleting databases from an opaque about:blank origin.
   await page.goto('/?e2e=1');
   await expect(page.locator('#save-status')).toContainText('Local document ready');
   await expect(page.locator('jabr-math-block math-field.jabr-math-field')).toBeVisible();
@@ -59,7 +52,7 @@ test('real BlockSuite model updates, undo and redo drive controller invalidation
 
   await page.evaluate(() => window.__JABR_TEST__!.doc.undo());
   await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)!.latex, blockId))
-    .toBe(String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`);
+    .toBe(DEFAULT_MATH_LATEX);
   await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.getResult(id).sourceRevision, blockId)).toBe(2);
 
   await page.evaluate(() => window.__JABR_TEST__!.doc.redo());
@@ -104,4 +97,43 @@ test('authored LaTeX persists across reload while transient result state resets'
   await expect.poll(() => page.locator('jabr-math-block math-field.jabr-math-field').first()
     .evaluate((field: Element & { value: string }) => field.value)).toBe('persisted source test');
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
+});
+
+
+test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page }) => {
+  // The initial worksheet contains math only; add a text block to test its scoped styles.
+  await page.locator('#add-text').click();
+  // Playwright locators pierce open shadow roots; document.querySelector does not.
+  const rootDisplay = await page.locator('jabr-root-block').evaluate(element => getComputedStyle(element).display);
+  const worksheetDisplay = await page.locator('jabr-worksheet-block').evaluate(element => getComputedStyle(element).display);
+  const mathDisplay = await page.locator('jabr-math-block').evaluate(element => getComputedStyle(element).display);
+  const textBlock = page.locator('jabr-text-block');
+  const textDisplay = await textBlock.evaluate(element => getComputedStyle(element).display);
+  const internalTextareaStyles = await textBlock.locator('textarea').evaluate(element => {
+    const styles = getComputedStyle(element);
+    return { minHeight: styles.minHeight, fontSize: styles.fontSize };
+  });
+  expect(rootDisplay).toBe('block');
+  expect(worksheetDisplay).toBe('block');
+  expect(mathDisplay).toBe('block');
+  expect(textDisplay).toBe('block');
+  expect(internalTextareaStyles.minHeight).toBe('42px');
+  expect(internalTextareaStyles.fontSize).toBe('14px');
+});
+test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
+  const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
+  await source.evaluate((field: Element & { getPrompts: () => string[]; __promptReadCount?: number }) => {
+    const original = field.getPrompts.bind(field);
+    field.__promptReadCount = 0;
+    field.getPrompts = () => {
+      field.__promptReadCount = (field.__promptReadCount ?? 0) + 1;
+      return original();
+    };
+  });
+
+  await source.press('1');
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBe(0);
+
+  await page.locator('jabr-math-block details.math-output').first().locator('summary').click();
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBeGreaterThan(0);
 });
