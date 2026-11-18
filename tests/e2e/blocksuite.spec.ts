@@ -107,6 +107,8 @@ test('authored LaTeX persists across reload while transient result state resets'
 
 
 test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page }) => {
+  // The initial worksheet contains math only; add a text block to test its scoped styles.
+  await page.locator('#add-text').click();
   // Playwright locators pierce open shadow roots; document.querySelector does not.
   const rootDisplay = await page.locator('jabr-root-block').evaluate(element => getComputedStyle(element).display);
   const worksheetDisplay = await page.locator('jabr-worksheet-block').evaluate(element => getComputedStyle(element).display);
