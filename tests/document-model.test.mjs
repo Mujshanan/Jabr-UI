@@ -109,7 +109,7 @@ test('duplicate declaration identities are rejected', () => {
 
 test('derived evaluation data cannot enter the authored document', () => {
   const document = fixture();
-  document.blocks[4].resultLatex = String.raw\`\\boxed{100}\\`;
+  document.blocks[4].resultLatex = 'stale-result';
   assert.throws(() => serializeDocument(document), /derived state and cannot be persisted/);
 });
 
