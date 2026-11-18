@@ -80,7 +80,7 @@ export class WorksheetController {
     // The provider owns revisions and request lifecycle; the result store is presentation-only.
     for (const blockId of this.knownBlockIds) {
       if (!current.has(blockId)) {
-        this.provider.removeBlock(blockId);
+        this.provider.removeBlock(this.options.documentId, blockId);
         worksheetResults.clear(blockId);
         this.knownBlockIds.delete(blockId);
         this.initializedResultBlocks.delete(blockId);
