@@ -13,9 +13,10 @@ after(async () => { await vite.close(); });
 const { EngineBridgeClient } = await vite.ssrLoadModule('/src/engine-bridge/client.ts');
 const { MockEngineTransport } = await vite.ssrLoadModule('/src/engine-bridge/mock-engine.ts');
 const { asKernelNodeId } = await vite.ssrLoadModule('/src/engine-bridge/contracts.ts');
+const { DEFAULT_MATH_LATEX } = await vite.ssrLoadModule('/src/blocks/math/schema.ts');
 const { EngineBridgeEvaluationAdapter } = await vite.ssrLoadModule('/src/engine-bridge/worksheet-adapter.ts');
 
-const DEFAULT_FIXTURE = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
+const DEFAULT_FIXTURE = DEFAULT_MATH_LATEX;
 
 const request = (requestId, sourceRevision, latex = DEFAULT_FIXTURE) => ({
   protocolVersion: 1,
