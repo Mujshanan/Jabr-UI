@@ -170,7 +170,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   `;
 
   private mathField: MathFieldElement | null = null;
-  private modelSubscription: { unsubscribe: () => void } | null = null;
+  private modelSubscription: { dispose: () => void } | null = null;
   private resultSubscription: (() => void) | null = null;
   private latexOutput = '';
   private promptOutput: PromptOutput[] = [];
@@ -254,7 +254,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     field.value = this.model.latex;
     field.addEventListener('input', this.onMathInput);
     field.addEventListener('keydown', this.onMathKeydown, true);
-    this.modelSubscription = this.model.propsUpdated.subscribe(this.onModelUpdated);
+    this.modelSubscription = this.model.propsUpdated.on(this.onModelUpdated);
     this.refreshOutput();
   }
 
@@ -264,7 +264,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     this.mathField = null;
     this.resultSubscription?.();
     this.resultSubscription = null;
-    this.modelSubscription?.unsubscribe();
+    this.modelSubscription?.dispose();
     this.modelSubscription = null;
   }
 
