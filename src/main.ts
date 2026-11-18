@@ -96,6 +96,9 @@ async function initializeDocument() {
             status: 'unavailable',
             diagnostic: 'Enable the mock evaluator or connect Jabr-engine.',
           }),
+      setCurrentRevision: (documentId, blockId, revision) => mockAdapter.setCurrentRevision(documentId, blockId, revision),
+      removeBlock: (documentId, blockId) => mockAdapter.removeBlock(documentId, blockId),
+      dispose: () => mockAdapter.dispose(),
     },
   });
   evaluationRequestListener = (event: Event) => {
