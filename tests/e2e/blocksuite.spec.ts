@@ -115,21 +115,27 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
   const mathDisplay = await page.locator('jabr-math-block').evaluate(element => getComputedStyle(element).display);
   const textBlock = page.locator('jabr-text-block');
   const textDisplay = await textBlock.evaluate(element => getComputedStyle(element).display);
-  const internalTextareaMinHeight = await textBlock.locator('textarea').evaluate(element => getComputedStyle(element).minHeight);
-  const externalTextareaMinHeight = await page.evaluate(() => {
+  const internalTextareaStyles = await textBlock.locator('textarea').evaluate(element => {
+    const styles = getComputedStyle(element);
+    return { minHeight: styles.minHeight, borderRadius: styles.borderRadius, fontFamily: styles.fontFamily };
+  });
+  const externalTextareaStyles = await page.evaluate(() => {
     const externalTextarea = document.createElement('textarea');
     document.body.append(externalTextarea);
-    const minHeight = getComputedStyle(externalTextarea).minHeight;
+    const styles = getComputedStyle(externalTextarea);
+    const result = { borderRadius: styles.borderRadius, fontFamily: styles.fontFamily };
     externalTextarea.remove();
-    return minHeight;
+    return result;
   });
 
   expect(rootDisplay).toBe('block');
   expect(worksheetDisplay).toBe('block');
   expect(mathDisplay).toBe('block');
   expect(textDisplay).toBe('block');
-  expect(internalTextareaMinHeight).toBe('42px');
-  expect(externalTextareaMinHeight).not.toBe('42px');
+  expect(internalTextareaStyles.minHeight).toBe('42px');
+  expect(internalTextareaStyles.borderRadius).toBe('6px');
+  expect(externalTextareaStyles.borderRadius).not.toBe('6px');
+  expect(externalTextareaStyles.fontFamily).not.toBe(internalTextareaStyles.fontFamily);
 });
 test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
