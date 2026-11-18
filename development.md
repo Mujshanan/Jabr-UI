@@ -66,8 +66,8 @@ This section is the cross-repository product roadmap. Repository-local milestone
 
 Complete and review all three specifications before starting M1:
 
-1. [Math–Kernel Integration Specification](https://github.com/Mujshanan/Jabr-kernel/blob/main/docs/specs/math-kernel-integration-spec.md)
-2. [Jabr Unit System Specification](https://github.com/Mujshanan/Jabr-math/blob/main/docs/specs/jabr-unit-system-spec.md)
+1. [Math–Kernel Integration Specification](https://github.com/Mujshanan/Jabr-kernel/blob/docs/math-kernel-integration-spec/docs/specs/math-kernel-integration-spec.md)
+2. [Jabr Unit System Specification](https://github.com/Mujshanan/Jabr-math/blob/docs/unit-system-spec/docs/specs/jabr-unit-system-spec.md)
 3. [Dual-Zone Block Architecture](docs/specs/dual-zone-block-architecture.md)
 
 Also freeze:
