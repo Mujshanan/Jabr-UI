@@ -90,7 +90,7 @@ async function initializeDocument() {
             requestId: request.requestId,
             sourceRevision: request.sourceRevision,
             status: 'unavailable',
-            diagnostic: 'Enable the mock evaluator or connect Jabr-CLI.',
+            diagnostic: 'Enable the mock evaluator or connect Jabr-engine.',
           }),
     },
   });
@@ -126,10 +126,10 @@ async function initializeDocument() {
     mockControl.textContent = mockEnabled ? 'Disable mock evaluator' : 'Enable mock evaluator';
     statusElement.textContent = mockEnabled
       ? 'Local document ready · mock evaluator enabled (fixtures only)'
-      : 'Local document ready · CLI evaluator unavailable';
+      : 'Local document ready · Engine bridge unavailable';
   });
 
-  statusElement.textContent = 'Local document ready · CLI evaluator unavailable';
+  statusElement.textContent = 'Local document ready · Engine bridge unavailable';
 }
 
 void initializeDocument().catch(error => {
