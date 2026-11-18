@@ -48,7 +48,7 @@ Every block has a stable `id` and a discriminant `type`.
 
 Structural/informational blocks are `heading` and `text`. They are document content, not calculation nodes.
 
-`column-layout` is a separate composition container, not an eighth calculation category. It has stable column and row identities, ordered rows, and cells that contain authored child blocks.
+`column-layout` is a separate composition container, not an eighth calculation category. It has stable column, row and row-cell identities; each row-cell refers to a stable column ID and contains authored child blocks.
 
 ## 4. Identity invariants
 
@@ -68,13 +68,13 @@ Top-level block order and nested child arrays are authored order.
 For `ColumnLayoutBlock`:
 
 - Rows are stored top-to-bottom.
-- Cells within each row are stored in strictly increasing `columnIndex` order (left-to-right).
+- Each row-cell refers to a stable column ID; row-cells are stored in the order of the referenced columns (left-to-right).
 - Blocks within a cell preserve their authored order.
 - Reading order traverses row 1 left-to-right, then row 2 left-to-right, continuing downward.
 - The layout container creates neither a calculation node nor a lexical scope.
 - Resizing columns or responsive reflow must not silently change row/cell membership or semantic order. A user-authored move that changes rows/cells is an explicit document edit.
 
-The model validates left-to-right cell ordering rather than silently sorting malformed persisted input. Rendering may adapt widths or stack columns on narrow screens, but must retain the stored reading order.
+The model validates left-to-right cell ordering by stable column reference rather than silently sorting malformed persisted input. Rendering may adapt widths or stack columns on narrow screens, but must retain the stored reading order.
 
 ## 6. Validation and serialization
 
