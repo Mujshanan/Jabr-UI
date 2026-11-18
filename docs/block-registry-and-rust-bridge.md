@@ -13,7 +13,7 @@ The product uses AFFiNE/BlockSuite as its document host. The following is the ow
 | Plot | Jabr-UI | No separate plot-engine repository currently established; data comes from Jabr-math/Jabr-table | Plot rendering stays in UI; typed series data crosses existing math/table adapters |
 | Diagram | Jabr-UI | Jabr-diagram (diagram model and geometry engine) | Rust bridge only if/when the engine core is Rust; current repository contents do not establish a Rust/WASM API yet |
 | Text / prose | AFFiNE native paragraph where possible; Jabr-UI only for Jabr-specific note semantics | None | No Rust bridge |
-| Root / worksheet container | AFFiNE owns production document root; Jabr-UI owns worksheet orchestration | None | No Rust bridge |
+| Root / worksheet container | AFFiNE owns the production document root; Jabr-UI owns authored document/block UI; Jabr-engine owns cross-block worksheet orchestration | None | No Rust bridge |
 
 **Important:** Matrix and Vector are distinct document block presentations, but they do not require separate engine repositories. Plot is a Jabr-UI block, not an excuse to create another engine repository before the data/plot contract requires it. Text should use native AFFiNE paragraph behavior whenever possible.
 
@@ -173,7 +173,7 @@ The UI may translate diagnostics into block-local messages, cell markers, or sou
 ### 4.6 Diagram — Jabr-UI + Jabr-diagram
 
 **UI**
-- Diagram appears as a compact document object by default; entering edit mode exposes Jabr Draw tools.
+- Diagram appears as a compact document object by default; entering edit mode exposes Jabr Diagram tools.
 - Define explicit enter/exit editing, zoom/pan, resize, keyboard ownership, Escape-to-document, selection, and export behavior.
 - Preserve engineering geometry and aspect ratio; do not distort diagrams to fit document width.
 - Diagram model data is authored and persisted; viewport/selection/tool state is transient unless explicitly saved as a view preference.
