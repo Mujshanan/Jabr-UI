@@ -16,6 +16,7 @@ export type TableCellId = string & { readonly __brand: 'TableCellId' };
 export type MatrixEntryId = string & { readonly __brand: 'MatrixEntryId' };
 export type LayoutColumnId = string & { readonly __brand: 'LayoutColumnId' };
 export type LayoutRowId = string & { readonly __brand: 'LayoutRowId' };
+export type LayoutCellId = string & { readonly __brand: 'LayoutCellId' };
 export type FunctionParameterId = string & { readonly __brand: 'FunctionParameterId' };
 export type ScopeId = string & { readonly __brand: 'ScopeId' };
 export type LogicBranchId = string & { readonly __brand: 'LogicBranchId' };
@@ -38,6 +39,7 @@ export const createTableCellId = (): TableCellId => createStableId<TableCellId>(
 export const createMatrixEntryId = (): MatrixEntryId => createStableId<MatrixEntryId>();
 export const createLayoutColumnId = (): LayoutColumnId => createStableId<LayoutColumnId>();
 export const createLayoutRowId = (): LayoutRowId => createStableId<LayoutRowId>();
+export const createLayoutCellId = (): LayoutCellId => createStableId<LayoutCellId>();
 export const createFunctionParameterId = (): FunctionParameterId => createStableId<FunctionParameterId>();
 export const createScopeId = (): ScopeId => createStableId<ScopeId>();
 export const createLogicBranchId = (): LogicBranchId => createStableId<LogicBranchId>();
@@ -175,7 +177,8 @@ export interface LayoutColumn {
 }
 
 export interface LayoutCell {
-  readonly columnIndex: number;
+  readonly id: LayoutCellId;
+  readonly columnId: LayoutColumnId;
   readonly blocks: readonly DocumentBlock[];
 }
 
@@ -401,10 +404,12 @@ export function assertValidDocument(value: unknown): asserts value is JabrDocume
           const layoutColumns = raw.columns as unknown[];
           if (layoutColumns.length < 2) throw new Error(`${at}.columns must contain at least two columns.`);
           const columnIds = new Set<string>();
+          const columnPositions = new Map<string, number>();
           raw.columns.forEach((column, columnIndex) => {
             if (!isRecord(column)) throw new Error(`${at}.columns[${columnIndex}] must be an object.`);
             requireUnique(column.id as string, columnIds, `${at}.columns[${columnIndex}].id`);
             requireUnique(column.id as string, auxiliaryIds, `${at}.columns[${columnIndex}].id`);
+            columnPositions.set(column.id as string, columnIndex);
             if (column.width !== undefined && (typeof column.width !== 'number' || !Number.isFinite(column.width) || column.width <= 0)) {
               throw new Error(`${at}.columns[${columnIndex}].width must be a positive finite number.`);
             }
@@ -414,19 +419,16 @@ export function assertValidDocument(value: unknown): asserts value is JabrDocume
             requireUnique(row.id as string, auxiliaryIds, `${at}.rows[${rowIndex}].id`);
             requireArray(row.cells, `${at}.rows[${rowIndex}].cells`);
             let previousColumn = -1;
-            const seenColumns = new Set<number>();
             row.cells.forEach((cell, cellIndex) => {
               if (!isRecord(cell)) throw new Error(`${at}.rows[${rowIndex}].cells[${cellIndex}] must be an object.`);
-              if (!Number.isInteger(cell.columnIndex) || (cell.columnIndex as number) < 0 ||
-                  (cell.columnIndex as number) >= layoutColumns.length) {
-                throw new Error(`${at}.rows[${rowIndex}].cells[${cellIndex}].columnIndex is invalid.`);
-              }
-              const columnIndex = cell.columnIndex as number;
-              if (columnIndex <= previousColumn || seenColumns.has(columnIndex)) {
+              requireUnique(cell.id as string, auxiliaryIds, `${at}.rows[${rowIndex}].cells[${cellIndex}].id`);
+              requireString(cell.columnId, `${at}.rows[${rowIndex}].cells[${cellIndex}].columnId`);
+              const columnIndex = columnPositions.get(cell.columnId);
+              if (columnIndex === undefined) throw new Error(`${at}.rows[${rowIndex}] references an unknown column.`);
+              if (columnIndex <= previousColumn) {
                 throw new Error(`${at}.rows[${rowIndex}].cells must be ordered left-to-right with no duplicate column.`);
               }
               previousColumn = columnIndex;
-              seenColumns.add(columnIndex);
               visitChildren(cell.blocks, `${at}.rows[${rowIndex}].cells[${cellIndex}].blocks`);
             });
           });
