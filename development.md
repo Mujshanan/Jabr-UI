@@ -1,8 +1,12 @@
 # Jabr Mathcad-Style Worksheet — Development Plan
 
+> **Architecture baseline (2026-11-18):** Jabr-UI owns the complete worksheet UI and authored BlockSuite/Yjs document. MathLive remains the sole mathematical input editor. Jabr Math owns parsing, AST, values, quantities, units, dimensional rules and expression evaluation. Jabr-engine (planned; repository not yet created) owns worksheet node mapping, dependency graph construction, bindings, recalculation scheduling and calculation-result lifecycle. Kernel provides generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, graph, diagnostic and span primitives. Table stores authored cell text and structure; Math parses it.
+
+> The current UI WorksheetController uses conservative positional invalidation as a prototype because the Engine graph is not connected. Keep it only as a temporary adapter behavior. Once Engine is available, UI must consume revisioned Engine snapshots/updates and stop inferring dependencies from worksheet position. The UI result store remains a transient rendering cache, not the calculation source of truth. BlockSuite/Yjs continues to own authored document history and undo/redo; calculation results are never persisted there.
+
 ## Purpose and ownership
 
-Jabr-UI is the BlockSuite/MathLive worksheet presentation and orchestration layer. Jabr-CLI owns parsing, symbols, dependency tracking, quantities, units, dimensional analysis, and calculation. MathLive remains the sole mathematical input editor. BlockSuite/Yjs owns document structure, persistence, collaboration, and undo/redo.
+Jabr-UI is the BlockSuite/MathLive worksheet presentation and orchestration layer. Jabr Math owns parsing, symbols, dependency tracking, quantities, units, dimensional analysis, and calculation. MathLive remains the sole mathematical input editor. BlockSuite/Yjs owns document structure, persistence, collaboration, and undo/redo.
 
 Computed results and diagnostics are transient UI state, never Yjs block properties. The future AFFiNE integration should adapt Jabr's worksheet model to the host's BlockSuite document model; it should not require a private Yjs fork.
 
@@ -40,7 +44,7 @@ Run and record:
 
 ## Explicit non-goals
 
-- No calculation engine in Jabr-UI.
+- No calculation engine, worksheet dependency graph, or recalculation scheduler in Jabr-UI.
 - No local expression parsing or unit interpretation.
 - No private Yjs fork for ordinary AFFiNE integration.
 - No merge until browser verification and all agreed worksheet interactions are complete.
