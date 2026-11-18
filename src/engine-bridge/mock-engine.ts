@@ -8,6 +8,7 @@ import {
   type EvaluateBlockResult,
 } from './contracts';
 import type { EngineTransport } from './client';
+import { DEFAULT_MATH_LATEX } from '../blocks/math/schema';
 
 /** Deterministic protocol fixture. It does not parse or calculate expressions. */
 export class MockEngineTransport implements EngineTransport {
