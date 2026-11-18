@@ -43,7 +43,7 @@ Mock results are UI fixtures, not engineering calculations and must never be use
 - Jabr Math owns mathematical syntax, parsing, AST, values, quantities, units, dimensional validation, and expression evaluation.
 - Jabr-engine (planned; repository not yet created) owns worksheet graph construction, dependency resolution, recalculation scheduling, and calculation-result lifecycle.
 - Jabr-kernel owns generic infrastructure only: NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, graph primitives, diagnostics and spans.
-- Jabr-table owns table structure and authored cell text; Math parses cell text.
+- Jabr-table owns table structure, stable identities and typed table data. A dedicated authored formula-source contract is still pending; Math parses expressions and Table never evaluates them.
 
 Jabr-UI, Jabr Math, Jabr-table, Jabr Diagram and Kernel remain independently developable. The future AFFiNE integration should adapt Jabr's worksheet blocks to the host's BlockSuite document model rather than introduce a private Yjs fork.
 
