@@ -31,7 +31,7 @@ Computed results, statuses, diagnostics, request IDs, and source revisions remai
 
 ## Mock evaluator
 
-The standalone prototype includes an opt-in **Enable mock evaluator** control. It uses exact, pre-authored fixtures only; it does not parse expressions, resolve symbols, evaluate arithmetic, or interpret units. The default sample source has a canned mock result. The exact source `MOCK_ERROR` demonstrates an intentional error, while unregistered source strings return an explicit “No mock fixture” error. Disable the mock to restore the unavailable-Jabr-CLI state.
+The standalone prototype includes an opt-in **Enable mock evaluator** control. It uses exact, pre-authored fixtures only; it does not parse expressions, resolve symbols, evaluate arithmetic, or interpret units. The default sample source has a canned mock result. The exact source `MOCK_ERROR` demonstrates an intentional error, while unregistered source strings return an explicit “No mock fixture” error. Disable the mock to restore the unavailable-Engine/Math state.
 
 Mock results are UI fixtures, not engineering calculations and must never be used for design decisions.
 
