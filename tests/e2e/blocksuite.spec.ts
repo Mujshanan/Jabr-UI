@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { DEFAULT_MATH_LATEX } from '../../src/blocks/math/schema';
 
 declare global {
   interface Window {
@@ -104,4 +105,45 @@ test('authored LaTeX persists across reload while transient result state resets'
   await expect.poll(() => page.locator('jabr-math-block math-field.jabr-math-field').first()
     .evaluate((field: Element & { value: string }) => field.value)).toBe('persisted source test');
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
+});
+
+
+test('light-DOM block hosts are block-level and text styles do not leak to unrelated textareas', async ({ page }) => {
+  const styles = await page.evaluate(() => {
+    const externalTextarea = document.createElement('textarea');
+    document.body.append(externalTextarea);
+    const result = {
+      rootDisplay: getComputedStyle(document.querySelector('jabr-root-block')!).display,
+      worksheetDisplay: getComputedStyle(document.querySelector('jabr-worksheet-block')!).display,
+      mathDisplay: getComputedStyle(document.querySelector('jabr-math-block')!).display,
+      textDisplay: getComputedStyle(document.querySelector('jabr-text-block')!).display,
+      externalTextareaMinHeight: getComputedStyle(externalTextarea).minHeight,
+    };
+    externalTextarea.remove();
+    return result;
+  });
+
+  expect(styles.rootDisplay).toBe('block');
+  expect(styles.worksheetDisplay).toBe('block');
+  expect(styles.mathDisplay).toBe('block');
+  expect(styles.textDisplay).toBe('block');
+  expect(styles.externalTextareaMinHeight).not.toBe('42px');
+});
+
+test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
+  const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
+  await source.evaluate((field: Element & { getPrompts: () => string[]; __promptReadCount?: number }) => {
+    const original = field.getPrompts.bind(field);
+    field.__promptReadCount = 0;
+    field.getPrompts = () => {
+      field.__promptReadCount = (field.__promptReadCount ?? 0) + 1;
+      return original();
+    };
+  });
+
+  await source.press('1');
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBe(0);
+
+  await page.locator('jabr-math-block details.math-output').first().locator('summary').click();
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBeGreaterThan(0);
 });
