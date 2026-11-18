@@ -25,13 +25,7 @@ async function resetLocalDocument(page: import('@playwright/test').Page) {
   await expect(page.locator('jabr-math-block math-field.jabr-math-field')).toBeVisible();
 }
 
-test.beforeEach(async ({ page }) => {
-  page.on('console', message => {
-    if (message.type() === 'error') console.log(`[browser console] ${message.text()}`);
-  });
-  page.on('pageerror', error => console.log(`[browser pageerror] ${error.stack ?? error.message}`));
-  await resetLocalDocument(page);
-});
+test.beforeEach(async ({ page }) => resetLocalDocument(page));
 
 test('real BlockSuite model updates, undo and redo drive controller invalidation in Chromium', async ({ page }) => {
   await page.getByRole('button', { name: 'Enable mock evaluator' }).click();
