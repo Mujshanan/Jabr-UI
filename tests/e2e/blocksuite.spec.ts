@@ -60,7 +60,7 @@ test('real BlockSuite model updates, undo and redo drive controller invalidation
 
   await page.evaluate(() => window.__JABR_TEST__!.doc.undo());
   await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)!.latex, blockId))
-    .toBe(String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`);
+    .toBe(DEFAULT_MATH_LATEX);
   await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.getResult(id).sourceRevision, blockId)).toBe(2);
 
   await page.evaluate(() => window.__JABR_TEST__!.doc.redo());
