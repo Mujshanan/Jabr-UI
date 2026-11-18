@@ -107,29 +107,27 @@ test('authored LaTeX persists across reload while transient result state resets'
 
 
 test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page }) => {
-  const styles = await page.evaluate(() => {
+  // Playwright locators pierce open shadow roots; document.querySelector does not.
+  const rootDisplay = await page.locator('jabr-root-block').evaluate(element => getComputedStyle(element).display);
+  const worksheetDisplay = await page.locator('jabr-worksheet-block').evaluate(element => getComputedStyle(element).display);
+  const mathDisplay = await page.locator('jabr-math-block').evaluate(element => getComputedStyle(element).display);
+  const textBlock = page.locator('jabr-text-block');
+  const textDisplay = await textBlock.evaluate(element => getComputedStyle(element).display);
+  const internalTextareaMinHeight = await textBlock.locator('textarea').evaluate(element => getComputedStyle(element).minHeight);
+  const externalTextareaMinHeight = await page.evaluate(() => {
     const externalTextarea = document.createElement('textarea');
     document.body.append(externalTextarea);
-    const textBlock = document.querySelector('jabr-text-block');
-    const internalTextarea = textBlock?.shadowRoot?.querySelector('textarea');
-    const result = {
-      rootDisplay: getComputedStyle(document.querySelector('jabr-root-block')!).display,
-      worksheetDisplay: getComputedStyle(document.querySelector('jabr-worksheet-block')!).display,
-      mathDisplay: getComputedStyle(document.querySelector('jabr-math-block')!).display,
-      textDisplay: getComputedStyle(textBlock!).display,
-      internalTextareaMinHeight: internalTextarea ? getComputedStyle(internalTextarea).minHeight : '',
-      externalTextareaMinHeight: getComputedStyle(externalTextarea).minHeight,
-    };
+    const minHeight = getComputedStyle(externalTextarea).minHeight;
     externalTextarea.remove();
-    return result;
+    return minHeight;
   });
 
-  expect(styles.rootDisplay).toBe('block');
-  expect(styles.worksheetDisplay).toBe('block');
-  expect(styles.mathDisplay).toBe('block');
-  expect(styles.textDisplay).toBe('block');
-  expect(styles.internalTextareaMinHeight).toBe('42px');
-  expect(styles.externalTextareaMinHeight).not.toBe('42px');
+  expect(rootDisplay).toBe('block');
+  expect(worksheetDisplay).toBe('block');
+  expect(mathDisplay).toBe('block');
+  expect(textDisplay).toBe('block');
+  expect(internalTextareaMinHeight).toBe('42px');
+  expect(externalTextareaMinHeight).not.toBe('42px');
 });
 test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
