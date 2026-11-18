@@ -192,6 +192,12 @@ function requireString(value: unknown, path: string): asserts value is string {
   }
 }
 
+/** Preserve the native BlockSuite model identity; never mint a replacement during adaptation. */
+export function blockIdFromBlockSuiteModelId(modelId: string): BlockId {
+  requireString(modelId, 'BlockSuite model.id');
+  return modelId as BlockId;
+}
+
 function requireArray(value: unknown, path: string): asserts value is unknown[] {
   if (!Array.isArray(value)) throw new Error(`${path} must be an array.`);
 }
