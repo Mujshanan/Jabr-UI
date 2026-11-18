@@ -78,6 +78,7 @@ async function initializeDocument() {
   worksheetController = new WorksheetController({
     documentId: DOCUMENT_ID,
     worksheet: worksheetModel as unknown as WorksheetModelLike,
+    store: doc,
     adapter: {
       evaluate: request => mockEnabled
         ? mockAdapter.evaluate(request)
