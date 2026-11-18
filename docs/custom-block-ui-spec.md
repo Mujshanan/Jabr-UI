@@ -205,7 +205,7 @@ Each block documents its available actions and whether they are exposed through 
 
 ### 7.6 Diagram block
 
-- Jabr Draw owns diagram geometry/model semantics; Jabr-UI owns the document block integration and contextual presentation.
+- Jabr Diagram owns diagram geometry/model semantics; Jabr-UI owns the document block integration and contextual presentation.
 - The default view should show the diagram as document content, not a full editor toolbar/canvas application.
 - Entering diagram-edit mode may expose a focused editing surface and tools; leaving it returns to the compact document presentation.
 - Selection, keyboard ownership, zoom/pan, resize, and escape-to-document behavior must be explicitly defined.
