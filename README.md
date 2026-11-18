@@ -4,7 +4,7 @@ Jabr UI is the complete BlockSuite-based worksheet product UI. It is developed i
 
 ## Calculation ownership
 
-The UI sends authored source and its current document/source revision to the Engine boundary. Engine owns graph construction, dependency resolution and recalculation; Math parses/evaluates; Kernel provides generic storage and revision/snapshot primitives. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
+The UI sends authored source and document identity to the Engine boundary. Engine owns worksheet state, graph construction, dependency resolution, revisions, snapshots, result storage/cache and recalculation. Math parses and evaluates explicit inputs; Kernel provides generic identity/port, graph, span, diagnostic and versioned-envelope primitives only. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
 
 ## Current worksheet blocks
 
@@ -41,8 +41,8 @@ Mock results are UI fixtures, not engineering calculations and must never be use
 - MathLive owns structured mathematical editing and LaTeX serialization.
 - Jabr-UI owns the complete product interface, authored BlockSuite/Yjs document, editing interactions, presentation, and transient rendering state.
 - Jabr Math owns mathematical syntax, parsing, AST, values, quantities, units, dimensional validation, and expression evaluation.
-- Jabr-engine (planned; repository not yet created) owns worksheet graph construction, dependency resolution, recalculation scheduling, and calculation-result lifecycle.
-- Jabr-kernel owns generic infrastructure only: NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, graph primitives, diagnostics and spans.
+- Jabr-engine (planned; repository not yet created) owns worksheet state and calculation records, worksheet graph construction, dependency resolution, revisions, snapshots, result storage/cache, recalculation scheduling, and calculation-result lifecycle.
+- Jabr-kernel owns generic infrastructure only: identifiers/ports, graph primitives and algorithms, source spans/locations, structured diagnostics, and versioned envelopes. It does not own worksheet revisions, snapshots, result storage, variable state, or scheduling.
 - Jabr-table owns table structure, stable identities and typed table data. A dedicated authored formula-source contract is still pending; Math parses expressions and Table never evaluates them.
 
 Jabr-UI, Jabr Math, Jabr-table, Jabr Diagram and Kernel remain independently developable. The future AFFiNE integration should adapt Jabr's worksheet blocks to the host's BlockSuite document model rather than introduce a private Yjs fork.
