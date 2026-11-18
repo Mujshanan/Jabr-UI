@@ -18,16 +18,8 @@ declare global {
 }
 
 async function resetLocalDocument(page: import('@playwright/test').Page) {
-  await page.goto('about:blank');
-  await page.evaluate(async () => {
-    const names = ['jabr-ui-worksheet-v1:collection', 'jabr-ui-worksheet-v1:document'];
-    await Promise.all(names.map(name => new Promise<void>(resolve => {
-      const request = indexedDB.deleteDatabase(name);
-      request.onsuccess = () => resolve();
-      request.onerror = () => resolve();
-      request.onblocked = () => resolve();
-    })));
-  });
+  // Playwright creates a fresh browser context for each test, so IndexedDB
+  // starts empty without deleting databases from an opaque about:blank origin.
   await page.goto('/?e2e=1');
   await expect(page.locator('#save-status')).toContainText('Local document ready');
   await expect(page.locator('jabr-math-block math-field.jabr-math-field')).toBeVisible();
