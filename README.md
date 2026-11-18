@@ -6,6 +6,10 @@ Jabr UI is the complete BlockSuite-based worksheet product UI. It is developed i
 
 The UI sends ordered authored blocks and document identity to the Engine boundary. Engine owns the sequential worksheet interpreter, execution environment, variable assignments, revisions, execution generations, snapshots and recalculation. Math parses and evaluates individual expressions against explicit bindings; Kernel provides generic infrastructure only. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
 
+## Authored document model
+
+The versioned authored-document contract and persistent identity rules are defined in [Jabr Authored Document Model v1](docs/specs/jabr-authored-document-model-v1.md). Its schema covers the seven calculation block categories and the separate multicolumn composition container. Evaluation results and diagnostics remain outside Yjs authored state.
+
 ## Current worksheet blocks
 
 The standalone document uses a small, explicit block tree:
@@ -63,6 +67,7 @@ Use Add math block or Add text block to append worksheet content. Press `=` in a
 
 ```sh
 pnpm test:controller
+pnpm test:document
 pnpm typecheck
 pnpm build
 ```

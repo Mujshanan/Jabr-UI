@@ -96,6 +96,8 @@ test('authored LaTeX persists across reload while transient result state resets'
   await expect(page.locator('#save-status')).toContainText('Local document ready');
   await expect.poll(() => page.locator('jabr-math-block math-field.jabr-math-field').first()
     .evaluate((field: Element & { value: string }) => field.value)).toBe('persisted source test');
+  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)?.id ?? null, blockId))
+    .toBe(blockId);
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
 });
 
