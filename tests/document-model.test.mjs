@@ -60,7 +60,7 @@ function fixture() {
         ] }],
       },
       {
-        id: 'func-1', type: 'func', declarationId: 'decl-4', name: 'area',
+        id: 'func-1', type: 'func', declarationId: 'decl-4', scopeId: 'func-scope-1', name: 'area',
         parameters: [{ id: 'parameter-1', name: 'width' }],
         body: [{ id: 'expr-inner', type: 'expr', source: 'L * width' }],
       },
