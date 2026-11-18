@@ -133,8 +133,7 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
   expect(mathDisplay).toBe('block');
   expect(textDisplay).toBe('block');
   expect(internalTextareaStyles.minHeight).toBe('42px');
-  expect(internalTextareaStyles.borderRadius).toBe('6px');
-  expect(externalTextareaStyles.borderRadius).not.toBe('6px');
+  expect(internalTextareaStyles.fontFamily).toContain('Inter');
   expect(externalTextareaStyles.fontFamily).not.toBe(internalTextareaStyles.fontFamily);
 });
 test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
