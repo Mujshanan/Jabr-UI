@@ -36,7 +36,7 @@ function fixture(ids) {
 }
 
 function successAdapter() {
-  return { async evaluate(request) { return { blockId: request.blockId, requestId: request.requestId, sourceRevision: request.sourceRevision, status: 'success', resultLatex: String.raw`\\boxed{fixture}` }; } };
+  return { async evaluate(request) { return { blockId: request.blockId, requestId: request.requestId, sourceRevision: request.sourceRevision, status: 'success', resultLatex: String.raw`\boxed{fixture}` }; } };
 }
 
 test('source changes invalidate the edited row and later math rows only', async t => {
@@ -101,7 +101,7 @@ test('a delayed response cannot overwrite a newer source revision', async t => {
   assert.equal(worksheetResults.get(blocks[0].id).status, 'pending');
   blocks[0].latex = 'newer source';
   update(blocks[0], 'latex');
-  resolveEvaluation({ blockId: blocks[0].id, requestId: 1, sourceRevision: 0, status: 'success', resultLatex: String.raw`\\boxed{stale}` });
+  resolveEvaluation({ blockId: blocks[0].id, requestId: 1, sourceRevision: 0, status: 'success', resultLatex: String.raw`\boxed{stale}` });
   await pending;
   assert.equal(worksheetResults.get(blocks[0].id).status, 'idle');
   assert.equal(worksheetResults.get(blocks[0].id).resultLatex, '');
@@ -111,7 +111,7 @@ test('a delayed response cannot overwrite a newer source revision', async t => {
 test('mock evaluator returns only exact registered fixtures and explicit errors', async () => {
   const adapter = new MockEvaluationAdapter();
   const base = { documentId: 'mock-test', blockId: 'mock-block', requestId: 7, sourceRevision: 2, displayUnit: '' };
-  const success = await adapter.evaluate({ ...base, latex: String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}` });
+  const success = await adapter.evaluate({ ...base, latex: String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}` });
   assert.equal(success.status, 'success');
   assert.match(success.resultLatex ?? '', /MOCK/);
   const intentionalError = await adapter.evaluate({ ...base, latex: 'MOCK_ERROR' });
