@@ -6,6 +6,10 @@ import type { EvaluateBlockRequest, EvaluateBlockResponse } from './contracts';
 export class EngineBridgeEvaluationAdapter implements EvaluationAdapter {
   constructor(private readonly client: EngineBridgeClient) {}
 
+  removeBlock(documentId: string, blockId: string): void {
+    this.client.removeBlock(documentId, blockId);
+  }
+
   setCurrentRevision(documentId: string, blockId: string, revision: number): void {
     this.client.setCurrentRevision(documentId, blockId, revision);
   }
