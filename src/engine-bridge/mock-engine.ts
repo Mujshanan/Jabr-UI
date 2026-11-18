@@ -16,9 +16,12 @@ export class MockEngineTransport implements EngineTransport {
   ): Promise<EngineResponse<TResult>> {
     await Promise.resolve();
     const payload = request.payload as EvaluateBlockPayload;
-    const result: EvaluateBlockResult = payload.latex === 'MOCK_ERROR'
-      ? { status: 'error' }
-      : { status: 'success', resultLatex: String.raw`\\boxed{MOCK: bridge fixture}` };
+    const defaultFixture = String.raw`F \\coloneqq \\placeholder[force]{100\\,\\mathrm{N}}`;
+    const isIntentionalError = payload.latex === 'MOCK_ERROR';
+    const isKnownFixture = payload.latex === defaultFixture;
+    const result: EvaluateBlockResult = isKnownFixture
+      ? { status: 'success', resultLatex: String.raw`\\boxed{MOCK: bridge fixture}` }
+      : { status: 'error' };
 
     return {
       protocolVersion: ENGINE_BRIDGE_PROTOCOL_VERSION,
@@ -32,9 +35,11 @@ export class MockEngineTransport implements EngineTransport {
       envelope: {
         schema_version: KERNEL_ENVELOPE_SCHEMA_VERSION,
         result: result as TResult,
-        diagnostics: payload.latex === 'MOCK_ERROR'
+        diagnostics: isIntentionalError
           ? [{ code: 'engine.mock.intentional_error', severity: 'error', message: 'Mock Engine fixture error.' }]
-          : [],
+          : isKnownFixture
+            ? []
+            : [{ code: 'engine.mock.no_fixture', severity: 'error', message: 'No mock fixture is registered for this exact source. No calculation was performed.' }],
       },
     };
   }
