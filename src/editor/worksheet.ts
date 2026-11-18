@@ -19,7 +19,7 @@ type JabrWorksheetModel = SchemaToModel<typeof JabrWorksheetSchema>;
 @customElement('jabr-worksheet-block')
 export class JabrWorksheetBlockView extends BlockComponent<JabrWorksheetModel> {
   static override styles = css`
-    jabr-worksheet-block { display: block; width: 100%; }
+    :host { display: block; width: 100%; }
     .jabr-worksheet-content {
       display: flex;
       flex-direction: column;
