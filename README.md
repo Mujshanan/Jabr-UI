@@ -4,7 +4,7 @@ Jabr UI is the complete BlockSuite-based worksheet product UI. It is developed i
 
 ## Calculation ownership
 
-The UI sends authored source and document identity to the Engine boundary. Engine owns worksheet state, graph construction, dependency resolution, revisions, snapshots, result storage/cache and recalculation. Math parses and evaluates explicit inputs; Kernel provides generic identity/port, graph, span, diagnostic and versioned-envelope primitives only. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
+The UI sends ordered authored blocks and document identity to the Engine boundary. Engine owns the sequential worksheet interpreter, execution environment, variable assignments, revisions, execution generations, snapshots and recalculation. Math parses and evaluates individual expressions against explicit bindings; Kernel provides generic infrastructure only. The UI may keep a transient presentation cache, but it must not become a second calculation-result authority. Calculated values, diagnostics and request metadata must never be persisted as Yjs authored block properties.
 
 ## Current worksheet blocks
 
@@ -41,7 +41,7 @@ Mock results are UI fixtures, not engineering calculations and must never be use
 - MathLive owns structured mathematical editing and LaTeX serialization.
 - Jabr-UI owns the complete product interface, authored BlockSuite/Yjs document, editing interactions, presentation, and transient rendering state.
 - Jabr Math owns mathematical syntax, parsing, AST, values, quantities, units, dimensional validation, and expression evaluation.
-- Jabr-engine (planned; repository not yet created) owns worksheet state and calculation records, worksheet graph construction, dependency resolution, revisions, snapshots, result storage/cache, recalculation scheduling, and calculation-result lifecycle.
+- Jabr-engine (planned; repository not yet created) owns sequential worksheet interpretation, execution order, variable environment, assignment/scope/control-flow semantics, revisions, execution generations, immutable snapshots, result storage/cache and calculation-result lifecycle. V1 executes top to bottom, disallows forward references and reruns from the top after authored changes.
 - Jabr-kernel owns generic infrastructure only: identifiers/ports, graph primitives and algorithms, source spans/locations, structured diagnostics, and versioned envelopes. It does not own worksheet revisions, snapshots, result storage, variable state, or scheduling.
 - Jabr-table owns table structure, stable identities and typed table data. A dedicated authored formula-source contract is still pending; Math parses expressions and Table never evaluates them.
 
