@@ -173,10 +173,6 @@ Rules:
 - A display-unit-only change may reformat an existing physical result without forcing a worksheet rerun when its physical value is unchanged.
 - UI's transient cache is disposable and is not calculation authority.
 
-### 6.1 Revision and snapshot ownership
-
-BlockSuite/Yjs owns authored history. Engine owns monotonic source revisions, execution generations, attempts and immutable execution snapshots. Each execution uses a fresh variable environment. A successful execution snapshot captures the final environment and per-block outputs. Failed attempts retain diagnostics separately and do not overwrite the last successful snapshot. Undo/redo creates a new execution generation and reruns from the top.
-
 
 
 ## 7. Revisions, snapshots and authored/derived lifecycle
