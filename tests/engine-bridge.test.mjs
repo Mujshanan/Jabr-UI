@@ -13,6 +13,7 @@ after(async () => { await vite.close(); });
 const { EngineBridgeClient } = await vite.ssrLoadModule('/src/engine-bridge/client.ts');
 const { MockEngineTransport } = await vite.ssrLoadModule('/src/engine-bridge/mock-engine.ts');
 const { asKernelNodeId } = await vite.ssrLoadModule('/src/engine-bridge/contracts.ts');
+const { EngineBridgeEvaluationAdapter } = await vite.ssrLoadModule('/src/engine-bridge/worksheet-adapter.ts');
 
 const request = (requestId, sourceRevision, latex = 'fixture') => ({
   protocolVersion: 1,
@@ -108,4 +109,28 @@ test('client rejects unsupported protocol and malformed envelope versions', asyn
   await assert.rejects(badClient.execute(request('bad-envelope', 0)), /Unsupported Kernel envelope/);
   client.dispose();
   badClient.dispose();
+});
+
+test('worksheet adapter translates bridge success and shared diagnostics', async () => {
+  const adapter = new EngineBridgeEvaluationAdapter(new EngineBridgeClient(new MockEngineTransport()));
+  const result = await adapter.evaluate({
+    documentId: 'doc-adapter',
+    blockId: 'block-adapter',
+    requestId: 4,
+    sourceRevision: 2,
+    latex: 'fixture',
+    displayUnit: 'kN',
+  });
+  assert.equal(result.status, 'success');
+  assert.match(result.resultLatex, /MOCK/);
+  adapter.dispose();
+});
+
+test('removed block identity clears the client revision/request guard', async () => {
+  const client = new EngineBridgeClient(new MockEngineTransport());
+  client.setCurrentRevision('doc-1', 'blocksuite-uuid-1', 7);
+  client.removeBlock('doc-1', 'blocksuite-uuid-1');
+  const outcome = await client.execute(request('after-remove', 0));
+  assert.equal(outcome.kind, 'applied');
+  client.dispose();
 });
