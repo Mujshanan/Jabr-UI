@@ -4,7 +4,7 @@ import './styles.css';
 import { BlockStdScope } from '@blocksuite/block-std';
 import { DocCollection, Schema } from '@blocksuite/store';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { JabrMathSchema } from './blocks/math';
+import { DEFAULT_MATH_LATEX, JabrMathSchema } from './blocks/math';
 import { JabrTextSchema } from './blocks/text';
 import { JabrRootSchema } from './editor/root';
 import { JabrWorksheetSchema } from './editor/worksheet';
@@ -15,7 +15,6 @@ import { worksheetResults } from './worksheet/result-store';
 
 const DATABASE_NAME = 'jabr-ui-worksheet-v1';
 const DOCUMENT_ID = 'calculation-sheet';
-const DEFAULT_LATEX = String.raw`F \coloneqq \placeholder[force]{100\,\mathrm{N}}`;
 
 const schema = new Schema().register([
   JabrRootSchema,
@@ -67,7 +66,7 @@ async function initializeDocument() {
   if (!doc.root) {
     const rootId = doc.addBlock('jabr:root' as never, { title: 'Untitled calculation' } as never);
     worksheetId = doc.addBlock('jabr:worksheet' as never, {} as never, rootId);
-    doc.addBlock('jabr:math' as never, { latex: DEFAULT_LATEX } as never, worksheetId);
+    doc.addBlock('jabr:math' as never, { latex: DEFAULT_MATH_LATEX } as never, worksheetId);
   } else {
     const root = doc.root;
     worksheetId = root.children[0]?.id ?? doc.addBlock('jabr:worksheet' as never, {} as never, root.id);
@@ -75,8 +74,10 @@ async function initializeDocument() {
 
   const rootModel = doc.root;
   if (!rootModel) throw new Error('The document root could not be initialized.');
-  const worksheetModel = rootModel.children.find(child => child.flavour === 'jabr:worksheet');
+  const worksheetModel = rootModel.children.find(child => child.flavour === 'jabr:worksheet')
+    ?? doc.getBlockById(doc.addBlock('jabr:worksheet' as never, {} as never, rootModel.id));
   if (!worksheetModel) throw new Error('The document is missing its worksheet hub.');
+  worksheetId = worksheetModel.id;
   worksheetController = new WorksheetController({
     documentId: DOCUMENT_ID,
     worksheet: worksheetModel as unknown as WorksheetModelLike,
@@ -114,7 +115,7 @@ async function initializeDocument() {
   editorElement.replaceChildren(std.render());
 
   addMathControl.addEventListener('click', () => {
-    doc.addBlock('jabr:math' as never, { latex: DEFAULT_LATEX } as never, worksheetId);
+    doc.addBlock('jabr:math' as never, { latex: DEFAULT_MATH_LATEX } as never, worksheetId);
   });
   addTextControl.addEventListener('click', () => {
     doc.addBlock('jabr:text' as never, { text: '' } as never, worksheetId);
