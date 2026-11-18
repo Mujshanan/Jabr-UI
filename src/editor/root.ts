@@ -20,7 +20,7 @@ type JabrRootModel = SchemaToModel<typeof JabrRootSchema>;
 @customElement('jabr-root-block')
 export class JabrRootBlockView extends BlockComponent<JabrRootModel> {
   static override styles = css`
-    jabr-root-block { display: block; width: 100%; }
+    :host { display: block; width: 100%; }
     .jabr-document-title {
       margin: 0 0 28px;
       color: #303846;
