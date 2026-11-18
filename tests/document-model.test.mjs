@@ -70,12 +70,12 @@ function fixture() {
         columns: [{ id: 'layout-col-1' }, { id: 'layout-col-2' }],
         rows: [
           { id: 'layout-row-1', cells: [
-            { columnIndex: 0, blocks: [{ id: 'left-top', type: 'text', markdown: 'Left top' }] },
-            { columnIndex: 1, blocks: [{ id: 'right-top', type: 'text', markdown: 'Right top' }] },
+            { id: 'layout-cell-1', columnId: 'layout-col-1', blocks: [{ id: 'left-top', type: 'text', markdown: 'Left top' }] },
+            { id: 'layout-cell-2', columnId: 'layout-col-2', blocks: [{ id: 'right-top', type: 'text', markdown: 'Right top' }] },
           ] },
           { id: 'layout-row-2', cells: [
-            { columnIndex: 0, blocks: [{ id: 'left-bottom', type: 'text', markdown: 'Left bottom' }] },
-            { columnIndex: 1, blocks: [{ id: 'right-bottom', type: 'text', markdown: 'Right bottom' }] },
+            { id: 'layout-cell-3', columnId: 'layout-col-1', blocks: [{ id: 'left-bottom', type: 'text', markdown: 'Left bottom' }] },
+            { id: 'layout-cell-4', columnId: 'layout-col-2', blocks: [{ id: 'right-bottom', type: 'text', markdown: 'Right bottom' }] },
           ] },
         ],
       },
