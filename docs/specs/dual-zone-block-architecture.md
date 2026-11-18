@@ -179,6 +179,40 @@ BlockSuite/Yjs owns authored history. Engine owns monotonic source revisions, ex
 
 
 
+## 7. Revisions, snapshots and authored/derived lifecycle
+
+### 7.1 Ownership
+
+- BlockSuite/Yjs owns authored document history and undo/redo.
+- Jabr Engine owns monotonic source revisions, worksheet execution generations, execution attempts, immutable execution snapshots and result-cache validity.
+- Engine owns the sequential execution environment and all variable/assignment state.
+- Kernel supplies generic infrastructure only; it does not supply worksheet revisions, variable state or snapshots.
+- Jabr-UI associates displayed output with Engine-provided source/execution identity and does not invent a second revision authority.
+
+### 7.2 Coexisting authored and derived state
+
+A calculation record is conceptually:
+
+```rust
+pub struct WorksheetExecutionRecord {
+    pub authored_source_ref: SourceIdentity,
+    pub source_revision: EngineRevision,
+    pub execution_generation: ExecutionGeneration,
+    pub status: ExecutionStatus,
+    pub block_outcomes: Vec<BlockOutcome>,
+    pub snapshot_ref: Option<ExecutionSnapshotId>,
+    pub diagnostics: Vec<OpaqueDiagnosticPayload>,
+}
+```
+
+This is illustrative and Engine-owned, not a Kernel API type. Recalculation never overwrites authored content.
+
+The authored BlockSuite/Yjs document is the source of truth on reopen. A successful execution snapshot captures the final execution environment and the values/results produced during that run. A failed attempt has its own status and diagnostics; it does not overwrite the last successful snapshot. The UI may display that previous snapshot only with an explicit stale indicator.
+
+### 7.3 Undo/redo
+
+Undo/redo restores authored BlockSuite/Yjs state. Engine observes the restored/reapplied source as a new input state, advances its monotonic source revision and execution generation, creates a fresh environment and reruns from the top. Derived results are not directly undone; Engine revisions and generations never rewind.
+
 ## 8. Focus, selection and keyboard ownership
 
 | Interaction | Owner |
