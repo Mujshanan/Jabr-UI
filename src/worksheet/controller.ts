@@ -43,7 +43,7 @@ type StoreBlockUpdateEvent =
   | { type: 'update'; id: string; flavour: string; props: { key: string } };
 
 type StoreEventSource = {
-  subscribe(listener: (event: StoreBlockUpdateEvent) => void): { unsubscribe(): void };
+  on(listener: (event: StoreBlockUpdateEvent) => void): { dispose(): void };
 };
 
 type ControllerOptions = {
@@ -63,7 +63,7 @@ type ControllerOptions = {
 export class WorksheetController {
   private readonly revisions = new Map<string, number>();
   private readonly latestRequests = new Map<string, number>();
-  private readonly storeSubscription: { unsubscribe(): void };
+  private readonly storeSubscription: { dispose(): void };
   private requestSequence = 0;
   private disposed = false;
 
@@ -81,7 +81,7 @@ export class WorksheetController {
     };
 
     this.syncBlockState();
-    this.storeSubscription = this.options.store.slots.blockUpdated.subscribe(event => {
+    this.storeSubscription = this.options.store.slots.blockUpdated.on(event => {
       if (event.type === 'update') {
         if (
           event.flavour === 'jabr:math' &&
@@ -193,7 +193,7 @@ export class WorksheetController {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.storeSubscription.unsubscribe();
+    this.storeSubscription.dispose();
     this.latestRequests.clear();
   }
 }
