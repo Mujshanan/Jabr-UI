@@ -117,13 +117,13 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
   const textDisplay = await textBlock.evaluate(element => getComputedStyle(element).display);
   const internalTextareaStyles = await textBlock.locator('textarea').evaluate(element => {
     const styles = getComputedStyle(element);
-    return { minHeight: styles.minHeight, borderRadius: styles.borderRadius, fontFamily: styles.fontFamily };
+    return { minHeight: styles.minHeight, fontSize: styles.fontSize };
   });
   const externalTextareaStyles = await page.evaluate(() => {
     const externalTextarea = document.createElement('textarea');
     document.body.append(externalTextarea);
     const styles = getComputedStyle(externalTextarea);
-    const result = { borderRadius: styles.borderRadius, fontFamily: styles.fontFamily };
+    const result = { fontSize: styles.fontSize };
     externalTextarea.remove();
     return result;
   });
@@ -133,8 +133,8 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
   expect(mathDisplay).toBe('block');
   expect(textDisplay).toBe('block');
   expect(internalTextareaStyles.minHeight).toBe('42px');
-  expect(internalTextareaStyles.fontFamily).toContain('Inter');
-  expect(externalTextareaStyles.fontFamily).not.toBe(internalTextareaStyles.fontFamily);
+  expect(internalTextareaStyles.fontSize).toBe('14px');
+  expect(externalTextareaStyles.fontSize).not.toBe('14px');
 });
 test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
