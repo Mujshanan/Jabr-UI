@@ -95,8 +95,8 @@ The initial Math block authored model includes:
 | Field | Meaning | Persistence |
 |---|---|---|
 | block identity | Stable BlockSuite block ID | Yjs/document |
-| \`latex\` | MathLive-authored structured mathematical source | Yjs/document |
-| \`displayUnit\` | User's preferred result display unit | Yjs/document |
+| `latex` | MathLive-authored structured mathematical source | Yjs/document |
+| `displayUnit` | User's preferred result display unit | Yjs/document |
 | presentation settings | Explicit user-selected block display options | Yjs/document |
 
 Do not store evaluated values, pending status, diagnostics, request IDs, or source-revision counters as durable Yjs properties.
