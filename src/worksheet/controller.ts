@@ -26,25 +26,30 @@ export interface EvaluationAdapter {
   evaluate(request: EvaluationRequest): Promise<EvaluationResponse>;
 }
 
-type SlotSubscription = { dispose(): void };
-type SlotLike<T> = { on(callback: (event: T) => void): SlotSubscription };
-
 export type MathBlockModelLike = {
   id: string;
   flavour: string;
   latex: string;
   displayUnit: string;
-  propsUpdated: SlotLike<{ key?: string }>;
 };
 
 export type WorksheetModelLike = {
+  id?: string;
   children: MathBlockModelLike[];
-  childrenUpdated: SlotLike<unknown>;
+};
+
+type StoreBlockUpdateEvent =
+  | { type: 'add' | 'delete'; id: string; flavour: string }
+  | { type: 'update'; id: string; flavour: string; props: { key: string } };
+
+type StoreEventSource = {
+  subscribe(listener: (event: StoreBlockUpdateEvent) => void): { unsubscribe(): void };
 };
 
 type ControllerOptions = {
   documentId: string;
   worksheet: WorksheetModelLike;
+  store: { slots: { blockUpdated: StoreEventSource } };
   adapter?: EvaluationAdapter;
 };
 
@@ -56,10 +61,9 @@ type ControllerOptions = {
  * replace this positional approximation with symbol-aware dependency tracking.
  */
 export class WorksheetController {
-  private readonly subscriptions = new Map<string, SlotSubscription>();
-  private readonly childrenSubscription: SlotSubscription;
   private readonly revisions = new Map<string, number>();
   private readonly latestRequests = new Map<string, number>();
+  private readonly storeSubscription: { unsubscribe(): void };
   private requestSequence = 0;
   private disposed = false;
 
@@ -76,22 +80,35 @@ export class WorksheetController {
       }),
     };
 
-    this.syncBlockSubscriptions();
-    this.childrenSubscription = this.options.worksheet.childrenUpdated.on(() => this.syncBlockSubscriptions());
+    this.syncBlockState();
+    this.storeSubscription = this.options.store.slots.blockUpdated.subscribe(event => {
+      if (event.type === 'update') {
+        if (
+          event.flavour === 'jabr:math' &&
+          event.props.key === 'latex' &&
+          this.mathBlocks().some(block => block.id === event.id)
+        ) {
+          this.onBlockSourceChanged(event.id);
+        }
+        return;
+      }
+
+      // BlockSuite 0.19.x exposes block-tree changes through Store.slots,
+      // not a childrenUpdated slot on BlockModel.
+      this.syncBlockState();
+    });
   }
 
   private mathBlocks(): MathBlockModelLike[] {
     return this.options.worksheet.children.filter(block => block.flavour === 'jabr:math');
   }
 
-  private syncBlockSubscriptions(): void {
+  private syncBlockState(): void {
     if (this.disposed) return;
     const current = new Map(this.mathBlocks().map(block => [block.id, block]));
 
-    for (const [blockId, subscription] of this.subscriptions) {
+    for (const blockId of this.revisions.keys()) {
       if (!current.has(blockId)) {
-        subscription.dispose();
-        this.subscriptions.delete(blockId);
         this.revisions.delete(blockId);
         this.latestRequests.delete(blockId);
         worksheetResults.clear(blockId);
@@ -103,15 +120,6 @@ export class WorksheetController {
         this.revisions.set(block.id, 0);
         worksheetResults.invalidate(block.id, 0);
       }
-      if (this.subscriptions.has(block.id)) continue;
-
-      const subscription = block.propsUpdated.on(({ key }) => {
-        // propsUpdated is emitted for Yjs-backed programmatic updates too,
-        // including undo/redo. Ignore display-unit edits; only source changes
-        // invalidate calculation results.
-        if (key === 'latex') this.onBlockSourceChanged(block.id);
-      });
-      this.subscriptions.set(block.id, subscription);
     }
   }
 
@@ -185,9 +193,7 @@ export class WorksheetController {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.childrenSubscription.dispose();
-    for (const subscription of this.subscriptions.values()) subscription.dispose();
-    this.subscriptions.clear();
+    this.storeSubscription.unsubscribe();
     this.latestRequests.clear();
   }
 }
