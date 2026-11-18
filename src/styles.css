@@ -86,7 +86,11 @@ h1 {
 }
 
 #editor,
-editor-host {
+editor-host,
+jabr-root-block,
+jabr-worksheet-block,
+jabr-math-block,
+jabr-text-block {
   display: block;
   width: 100%;
 }
