@@ -13,10 +13,17 @@ after(async () => { await vite.close(); });
 
 const {
   assertValidDocument,
+  blockIdFromBlockSuiteModelId,
   deserializeDocument,
   getDocumentReadingOrder,
   serializeDocument,
 } = await vite.ssrLoadModule('/src/document/model.ts');
+
+test('BlockSuite model identity is preserved by the document adapter boundary', () => {
+  const nativeId = 'blocksuite-native-model-id';
+  assert.equal(blockIdFromBlockSuiteModelId(nativeId), nativeId);
+  assert.throws(() => blockIdFromBlockSuiteModelId('  '), /non-empty string/);
+});
 
 function fixture() {
   return {
