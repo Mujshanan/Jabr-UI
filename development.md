@@ -2,7 +2,7 @@
 
 > **Architecture baseline (2026-11-18):** Jabr-UI owns the complete worksheet UI and authored BlockSuite/Yjs document. MathLive remains the sole mathematical input editor. Jabr Math owns parsing, AST, values, quantities, units, dimensional rules and expression evaluation. Jabr-engine (planned; repository not yet created) owns worksheet node mapping, dependency graph construction, bindings, recalculation scheduling and calculation-result lifecycle. Kernel provides generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, graph, diagnostic and span primitives. Table owns table structure, stable identities and typed values. A dedicated authored formula-source contract remains pending; Math parses expressions.
 
-> The current UI WorksheetController uses conservative positional invalidation as a prototype because the Engine graph is not connected. Keep it only as a temporary adapter behavior. Once Engine is available, UI must consume revisioned Engine snapshots/updates and stop inferring dependencies from worksheet position. The UI result store remains a transient rendering cache, not the calculation source of truth. BlockSuite/Yjs continues to own authored document history and undo/redo; calculation results are never persisted there.
+> The current WorksheetController delegates invalidation and evaluation to a replaceable CalculationProvider. The standalone LocalOrderedCalculationProvider uses conservative positional invalidation only as a prototype because the Engine graph is not connected. Keep that provider temporary; Engine will replace it with graph-aware invalidation and scheduling without changing BlockSuite views. Once Engine is available, UI must consume revisioned Engine snapshots/updates and stop inferring dependencies from worksheet position. The UI result store remains a transient rendering cache, not the calculation source of truth. BlockSuite/Yjs continues to own authored document history and undo/redo; calculation results are never persisted there.
 
 ## Purpose and ownership
 
@@ -14,17 +14,17 @@ Computed results and diagnostics are transient UI state, never Yjs block propert
 
 - MathLive structured placeholders and native cursor/placeholder navigation.
 - Dual-zone source/result row and display-unit preference.
-- Worksheet controller with source-revision tracking, ordered invalidation, and stale-response protection.
+- Worksheet controller delegating to a replaceable CalculationProvider; the local provider supplies source revisions and temporary ordered invalidation. The versioned Engine bridge client validates Kernel envelopes and drops stale responses.
 - Transient result store.
-- Opt-in deterministic mock evaluator using exact source fixtures only. It does not parse or calculate.
+- Opt-in deterministic mock Engine transport through the real versioned bridge client. It exercises protocol/revision/diagnostic handling only; it does not parse or calculate.
 - Real Yjs UndoManager regression test bridged through a model-like propsUpdated event.
 
-## Milestone 4 — Worksheet controller and mock evaluation
+## Milestone 4 — Worksheet controller, CalculationProvider, and mock Engine bridge
 
-1. [x] Subscribe to math model `propsUpdated` and worksheet `childrenUpdated`.
-2. [x] Invalidate edited and later math blocks conservatively.
+1. [x] Subscribe to BlockSuite store updates for authored math source and worksheet structure.
+2. [x] Isolate temporary ordered invalidation in LocalOrderedCalculationProvider behind CalculationProvider.
 3. [x] Keep results and request metadata outside Yjs.
-4. [x] Reject stale and mismatched responses.
+4. [x] Validate protocol/envelope/correlation fields and discard stale or mismatched responses.
 5. [x] Provide an opt-in, deterministic fixture adapter; unknown source is an explicit mock error.
 6. [x] Test pending, success, error, unavailable, and stale-response states.
 7. [x] Exercise actual Yjs UndoManager undo/redo and verify that model update events invalidate the controller state.
