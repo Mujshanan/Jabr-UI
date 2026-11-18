@@ -24,7 +24,7 @@ The zones are logically distinct even when displayed side-by-side, stacked or in
 | Product UI, focus routing, visual block behavior and transient rendering cache | Jabr-UI |
 | Mathematical editing and LaTeX serialization | MathLive |
 | Parsing, AST, symbols, references, values, quantities, units, dimensional rules and evaluation | Jabr Math |
-| Worksheet node mapping, authored/derived calculation records, revisions, fingerprints, result cache, calculation snapshots, dirty policy, scheduling and recalculation | Planned Jabr Engine |
+| Sequential worksheet interpreter, execution environment, authored/derived calculation records, revisions, execution generations, snapshots and result lifecycle | Planned Jabr Engine |
 | Generic NodeId/Port, graph primitives/algorithms, spans, diagnostic envelope and generic versioned envelope | `jabr-kernel-api`, implemented by `jabr-kernel` |
 | Table structure, stable row/column/cell identity and typed data | Jabr Table |
 | Figure model, geometry and SVG rendering | Jabr Diagram |
@@ -53,7 +53,7 @@ Kernel generic graph/API       Jabr Math
 Jabr-UI transient derived presentation
 ```
 
-Engine uses Kernel graph primitives but owns graph contents and worksheet scheduling. Math receives explicit owned evaluation inputs, not direct access to Kernel state or implementation.
+V1 Engine executes worksheet blocks sequentially in document order using an Engine-owned variable environment. Math receives explicit owned bindings for individual expressions. Generic Kernel graph primitives are not the V1 worksheet scheduler.
 
 ## 3. Core invariants
 
@@ -61,12 +61,12 @@ Engine uses Kernel graph primitives but owns graph contents and worksheet schedu
 2. BlockSuite owns authored block structure, document identity, persistence, collaboration and authored undo/redo.
 3. Jabr-UI owns product UI, block presentation, focus routing and transient rendering.
 4. Jabr Math owns mathematical semantics and evaluation.
-5. Jabr Engine owns worksheet calculation records, revisions, dependency mapping, scheduling and result lifecycle.
+5. Jabr Engine owns sequential worksheet execution, variable environment, assignment lifecycle, revisions, execution generations, snapshots and result lifecycle.
 6. Kernel remains generic infrastructure only.
 7. Authored source and user-selected display preferences are persisted in the authored document.
 8. Calculated values, statuses, diagnostics, request IDs and derived render caches are not persisted as authored Yjs block properties.
 9. UI does not parse expressions, infer mathematical dependencies or implement a local calculation engine.
-10. Every derived result is associated with the exact source/input identity that produced it.
+10. Every derived result is associated with the exact authored input identity and execution generation that produced it.
 11. Recalculation never overwrites authored source.
 12. Undo/redo restores authored content; Engine observes the new input state and recalculates. Revisions do not rewind.
 13. Late responses cannot replace results for newer inputs.
@@ -133,76 +133,51 @@ A result or error never replaces source. The authoring zone remains editable whi
 
 ## 6. Request/result lifecycle
 
+V1 evaluates the worksheet as a sequential program. An authored change schedules a new worksheet execution from the top; Engine does not request per-block dependency recalculation.
+
 ```text
-current / not-calculated
-        |
-authored source or relevant input changes
-        v
-stale
-        |
-Engine schedules evaluation
-        v
-pending
-    /       \
-   v         v
-current     error
-   |
-newer source/input revision
-   v
-stale -> pending
+authored source/order changes
+          |
+          v
+Engine advances source revision and execution generation
+          |
+          v
+Engine creates a fresh execution environment
+          |
+          v
+Engine executes blocks/statements in document order
+          |
+          v
+Engine records per-block results and diagnostics
+          |
+          v
+Engine publishes the completed execution snapshot
+          |
+          v
+Jabr-UI displays current derived output
 ```
 
 Rules:
-- Source edits invalidate the old result immediately.
-- Engine assigns/advances authoritative source and calculation revisions.
-- Pending, current, stale, error and unavailable states are visibly distinct.
-- A failed evaluation displays diagnostics without changing authored source.
-- An unavailable Engine/Math service is not a successful empty result.
-- Requests carry source identity/revision and an input fingerprint or equivalent validation token.
-- Engine rejects stale results before publication; UI also ignores responses whose request/source identity no longer matches the active block.
-- Deleting/disposing a block cancels or ignores outstanding requests.
-- A display-unit-only change may request reformatting/conversion but must not invalidate unrelated dependency nodes.
-- Engine owns cache validity. UI's transient cache is disposable and may be cleared/repopulated at any time.
+- Source/order changes invalidate current execution output and schedule a top-to-bottom rerun.
+- Engine owns authoritative source revisions and worksheet execution generations.
+- Variables become available only after successful assignment; forward references are not supported in V1.
+- Successful assignments affect subsequent statements, not earlier captured results.
+- Conditional expressions and blocks execute only selected branches.
+- Failed statements produce diagnostics and do not partially update the environment. Independent later statements may continue.
+- A statement requiring a variable whose assignment failed or has not executed is blocked or reports an unresolved variable.
+- Each execution uses a fresh environment; values from an earlier execution are never silently carried into a new one.
+- Pending, current, stale, failed, blocked and unavailable states are distinct.
+- A failed execution retains diagnostics. The last successful execution snapshot may remain visible only with an explicit stale indicator.
+- Engine rejects responses from obsolete execution generations.
+- Deleting/disposing a block cancels or ignores outstanding work.
+- A display-unit-only change may reformat an existing physical result without forcing a worksheet rerun when its physical value is unchanged.
+- UI's transient cache is disposable and is not calculation authority.
 
-## 7. Revisions, snapshots and authored/derived lifecycle
+### 6.1 Revision and snapshot ownership
 
-### 7.1 Ownership
+BlockSuite/Yjs owns authored history. Engine owns monotonic source revisions, execution generations, attempts and immutable execution snapshots. Each execution uses a fresh variable environment. A successful execution snapshot captures the final environment and per-block outputs. Failed attempts retain diagnostics separately and do not overwrite the last successful snapshot. Undo/redo creates a new execution generation and reruns from the top.
 
-- BlockSuite/Yjs owns authored document history and undo/redo.
-- Jabr Engine owns monotonic document/source/node revisions, calculation generations, dependency/input fingerprints, result snapshots and cache validity.
-- Kernel supplies generic identity and graph primitives only; it does not supply worksheet revision or snapshot lifecycle.
-- Jabr-UI associates displayed output with Engine-provided source/input identity and does not invent a second revision authority.
 
-### 7.2 Coexisting authored and derived state
-
-Authored source and derived output coexist as separate records. A calculation record is conceptually:
-
-```rust
-pub struct CalculationRecord {
-    pub authored_source_ref: SourceIdentity,
-    pub source_revision: EngineRevision,
-    pub calculation_generation: CalculationGeneration,
-    pub input_fingerprint: InputFingerprint,
-    pub status: CalculationStatus,
-    pub result: Option<OpaqueMathPayload>,
-    pub diagnostics: Vec<OpaqueDiagnosticPayload>,
-}
-```
-
-This is illustrative, Engine-owned and not a Kernel API type. Recalculation must never overwrite authored content.
-
-The authored BlockSuite/Yjs document is the source of truth on reopen. Derived results are reproducible output and may be cached by Engine. A cached result is reusable only when source identity/revision, dependency/input fingerprint, relevant calculation configuration and compatible engine versions match. A document schema match alone is insufficient.
-
-On restore:
-1. Load authored document state from BlockSuite/Yjs.
-2. Engine rebuilds/resolves worksheet bindings and validates cached results.
-3. Reuse only cache entries proven valid by Engine's cache contract.
-4. Recompute missing or invalid results.
-5. UI displays results associated with the restored authored inputs.
-
-### 7.3 Undo/redo
-
-Undo/redo operates on authored BlockSuite/Yjs state. Engine observes the restored/reapplied source as a new input state, advances its monotonic revision/generation and recalculates. Derived results are not directly undone; Engine revisions never rewind.
 
 ## 8. Focus, selection and keyboard ownership
 
@@ -211,7 +186,7 @@ Undo/redo operates on authored BlockSuite/Yjs state. Engine observes the restore
 | Mathematical character input, placeholders, cursor navigation and source selection | MathLive |
 | Outer block selection/movement, insertion/deletion and authored history | BlockSuite / Jabr-UI |
 | Result display and diagnostic presentation | Jabr-UI |
-| Dependency and calculation behavior | Jabr Engine / Math |
+| Sequential execution and calculation behavior | Jabr Engine / Math |
 | Table-specific editing | Jabr Table adapter hosted by Jabr-UI |
 | Diagram-specific editing | Jabr Diagram adapter hosted by Jabr-UI |
 
@@ -252,7 +227,7 @@ On reload, UI restores authored state and Engine rebuilds/validates calculation 
 ### Table block
 - Authored zone: table structure, stable row/column/cell identities, authored cell text and typed source data.
 - Derived zone: Engine/Math-derived values, validation, summaries and lookup results.
-- Table owns its model and deterministic table operations; Math parses/evaluates formulas; Engine owns cross-block graph and recalculation.
+- Table owns its model and deterministic table operations; Math parses/evaluates formulas; Engine supplies previously available values during sequential execution. Cross-block forward references are not supported in V1.
 - A dedicated formula-source contract remains a separate Table/Math/Engine integration decision.
 
 ### Diagram block
@@ -287,7 +262,7 @@ The dual-zone principle is logical, not a mandate for identical two-column layou
 
 ### Cross-engine tests
 - Source identity/revision survives UI → Engine → Math → Engine → UI.
-- Engine validates source revision, dependency fingerprint and calculation generation before publication.
+- Engine validates source revision and execution generation before publication.
 - Math diagnostics preserve UTF-8 byte spans; UI maps them to editor offsets.
 - Display-unit changes update presentation without invalidating unrelated graph nodes.
 - Native and WASM Math paths produce equivalent normalized outputs for the same authored fixture.
@@ -299,7 +274,7 @@ The existing prototype includes MathLive input, dual-zone presentation, a worksh
 Known gaps:
 - Real BlockSuite model-to-Yjs UndoManager browser behavior requires validation.
 - Read-only result rendering and Yjs persistence exclusion require browser verification.
-- Positional invalidation is temporary and must be replaced by Engine graph updates.
+- Positional invalidation in the UI prototype is not the production execution model; Engine executes the worksheet from the top in V1.
 - Planned Jabr Engine is not yet connected.
 - Prototype revisions/request IDs are local UI adapter details, not the final cross-engine revision authority.
 - Production result snapshots and cache lifecycle must be defined by Engine.
@@ -319,7 +294,9 @@ Do not claim browser verification or real calculation behavior without test evid
 
 - A second mathematical editor alongside MathLive.
 - Parsing/evaluating expressions in Jabr-UI.
-- Worksheet graph construction or recalculation scheduling in UI or Kernel.
+- Worksheet interpretation or execution scheduling in UI or Kernel.
+- Dynamic dependency requests, active dependency graphs or incremental dependency scheduling in V1.
+- Forward references in the V1 sequential worksheet model.
 - Kernel-owned revisions, snapshots, result store or variable state.
 - Persisting calculated values/diagnostics as Yjs authored properties.
 - Forcing every block flavour into the same visual layout.
