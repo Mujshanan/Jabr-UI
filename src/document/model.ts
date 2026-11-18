@@ -7,6 +7,7 @@
  * the Engine and must not be added to these records.
  */
 
+export type DocumentId = string & { readonly __brand: 'DocumentId' };
 export type BlockId = string & { readonly __brand: 'BlockId' };
 export type DeclarationId = string & { readonly __brand: 'DeclarationId' };
 export type TableRowId = string & { readonly __brand: 'TableRowId' };
@@ -26,12 +27,13 @@ export function createStableId<T extends string>(): T {
   return globalThis.crypto.randomUUID() as T;
 }
 
+export const createDocumentId = (): DocumentId => createStableId<DocumentId>();
 export const createBlockId = (): BlockId => createStableId<BlockId>();
 export const createDeclarationId = (): DeclarationId => createStableId<DeclarationId>();
 
 export interface JabrDocumentV1 {
   readonly schemaVersion: typeof DOCUMENT_SCHEMA_VERSION;
-  readonly documentId: string;
+  readonly documentId: DocumentId;
   readonly title: string;
   readonly blocks: readonly DocumentBlock[];
 }
@@ -200,6 +202,28 @@ function requireUnique(value: string, set: Set<string>, path: string): void {
   set.add(value);
 }
 
+const DERIVED_PROPERTY_NAMES = new Set([
+  'result', 'resultLatex', 'calculatedValue', 'evaluation', 'evaluationResult',
+  'status', 'diagnostics', 'diagnostic', 'requestId', 'sourceRevision',
+  'calculationGeneration', 'executionGeneration', 'worksheetExecutionId',
+  'snapshot', 'snapshotRef', 'derived', 'derivedPayload', 'renderCache',
+  'cacheFingerprint',
+]);
+
+function assertNoDerivedProperties(value: unknown, path = 'document'): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertNoDerivedProperties(item, `${path}[${index}]`));
+    return;
+  }
+  if (!isRecord(value)) return;
+  for (const [key, child] of Object.entries(value)) {
+    if (DERIVED_PROPERTY_NAMES.has(key)) {
+      throw new Error(`${path}.${key} is derived state and cannot be persisted in the authored document.`);
+    }
+    assertNoDerivedProperties(child, `${path}.${key}`);
+  }
+}
+
 function childrenOf(block: DocumentBlock): readonly DocumentBlock[] {
   switch (block.type) {
     case 'logic':
@@ -232,6 +256,7 @@ export function getDocumentReadingOrder(document: JabrDocumentV1): DocumentBlock
 /** Validates the authored v1 tree and all persistent identities. */
 export function assertValidDocument(value: unknown): asserts value is JabrDocumentV1 {
   if (!isRecord(value)) throw new Error('Document must be an object.');
+  assertNoDerivedProperties(value);
   if (value.schemaVersion !== DOCUMENT_SCHEMA_VERSION) {
     throw new Error(`Unsupported document schema version: ${String(value.schemaVersion)}.`);
   }
