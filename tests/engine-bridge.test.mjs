@@ -134,3 +134,12 @@ test('removed block identity clears the client revision/request guard', async ()
   assert.equal(outcome.kind, 'applied');
   client.dispose();
 });
+
+test('mock Engine refuses unregistered source without calculating', async () => {
+  const client = new EngineBridgeClient(new MockEngineTransport());
+  const outcome = await client.execute(request('unknown-source', 0, 'x := 123'));
+  assert.equal(outcome.kind, 'applied');
+  assert.equal(outcome.response.envelope.result.status, 'error');
+  assert.equal(outcome.response.envelope.diagnostics[0].code, 'engine.mock.no_fixture');
+  client.dispose();
+});
