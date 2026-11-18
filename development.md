@@ -1,12 +1,12 @@
 # Jabr Mathcad-Style Worksheet — Development Plan
 
-> **Architecture baseline (2026-11-18):** Jabr-UI owns the complete worksheet UI and authored BlockSuite/Yjs document. MathLive remains the sole mathematical input editor. Jabr Math owns parsing, AST, values, quantities, units, dimensional rules and expression evaluation. Jabr-engine (planned; repository not yet created) owns worksheet state and calculation records, worksheet node mapping, dependency graph construction, bindings, revisions, snapshots, result storage/cache, recalculation scheduling and calculation-result lifecycle. Kernel provides generic identifiers/ports, graph primitives and algorithms, source spans/locations, structured diagnostics and versioned envelopes only. Table owns table structure, stable identities and typed values. A dedicated authored formula-source contract remains pending; Math parses expressions.
+> **Architecture baseline (2026-11-18):** Jabr-UI owns the complete worksheet UI and authored BlockSuite/Yjs document. MathLive remains the sole mathematical input editor. Jabr Math owns mathematical parsing, AST, values, quantities, units, dimensional rules and individual expression evaluation. The planned Jabr Engine owns the sequential worksheet interpreter, execution order, variable environment, assignment lifecycle, scopes/control flow, revisions, execution generations, immutable snapshots and result lifecycle. V1 executes top to bottom, prohibits forward references, uses a fresh environment per run and reruns from the top after authored changes. Kernel provides generic infrastructure only; its graph primitives are not the V1 worksheet scheduler. Table owns table structure, stable identities and typed values.
 
-> The current UI WorksheetController uses conservative positional invalidation as a prototype because the Engine graph is not connected. Keep it only as a temporary adapter behavior. Once Engine is available, UI must consume revisioned Engine snapshots/updates and stop inferring dependencies from worksheet position. The UI result store remains a transient rendering cache, not the calculation source of truth. BlockSuite/Yjs continues to own authored document history and undo/redo; calculation results are never persisted there.
+> The current UI WorksheetController uses ordered invalidation as a prototype adapter, not as the production execution engine. The production V1 Engine executes the full worksheet from the top in document order using a fresh environment. The UI result store remains a transient rendering cache, not the calculation source of truth. BlockSuite/Yjs continues to own authored document history and undo/redo; calculation results are never persisted there.
 
 ## Purpose and ownership
 
-Jabr-UI is the BlockSuite/MathLive worksheet presentation and host-integration layer. Jabr Math owns parsing, AST, language-level symbols, expression dependencies, quantities, units, dimensional analysis and calculation. Jabr-engine owns cross-block worksheet bindings, graph construction, scheduling and recalculation. MathLive remains the sole mathematical input editor. BlockSuite/Yjs owns document structure, persistence, collaboration, and undo/redo.
+Jabr-UI is the BlockSuite/MathLive worksheet presentation and host-integration layer. Jabr Math owns mathematical parsing, AST, symbols, quantities, units, dimensional analysis and individual expression evaluation. Jabr-engine owns sequential worksheet interpretation, execution order, variable bindings, assignment updates, scope/control flow, snapshots and recalculation. MathLive remains the sole mathematical input editor. BlockSuite/Yjs owns document structure, persistence, collaboration, and undo/redo.
 
 Computed results and diagnostics are transient UI state, never Yjs block properties. The future AFFiNE integration should adapt Jabr's worksheet model to the host's BlockSuite document model; it should not require a private Yjs fork.
 
@@ -44,7 +44,7 @@ Run and record:
 
 ## Explicit non-goals
 
-- No calculation engine, worksheet dependency graph, or recalculation scheduler in Jabr-UI.
+- No calculation engine, worksheet interpreter, variable environment or recalculation scheduler in Jabr-UI.
 - No local expression parsing or unit interpretation.
 - No private Yjs fork for ordinary AFFiNE integration.
 - No merge until browser verification and all agreed worksheet interactions are complete.
@@ -73,8 +73,8 @@ Complete and review all three specifications before starting M1:
 Also freeze:
 
 - Generic JSON Envelope v1, diagnostic taxonomy and source-span conventions for the Kernel contract.
-- Math-owned analysis/evaluation DTOs and the Engine adapter contract.
-- Engine-owned worksheet revisions, authored/derived calculation records, result cache, snapshots and stale-result policy; these are explicitly outside Kernel.
+- Math-owned expression-analysis/evaluation DTOs and the Engine adapter contract, with no worksheet dependency-request protocol.
+- Engine-owned sequential execution contract: source revisions, execution generations, variable environment, assignment semantics, per-block outcomes, immutable snapshots, result cache and stale-result policy; these are explicitly outside Kernel.
 - Draw figure schema v1, owned by Jabr Diagram.
 - Canonical cross-repository smoke fixture contract.
 - Provisional performance targets and benchmark methodology.
@@ -86,7 +86,7 @@ Also freeze:
 - Stabilize the Math facade and AST/value contracts.
 - Implement the unit system through U0–U7 as defined by its specification.
 - Add parser, quantity, dimensional, and native/WASM parity fixtures.
-- Keep worksheet-wide graph construction and scheduling in Jabr Engine.
+- Keep worksheet interpretation and sequential execution in Jabr Engine; generic Kernel graph APIs are not used as the V1 worksheet scheduler.
 
 ### M2 — Table engine, split into independently verifiable increments
 
@@ -142,7 +142,7 @@ These are initial acceptance targets, not measured claims. Record hardware, OS, 
 
 | Workload | Provisional target |
 |---|---:|
-| Recalculate a 100-variable dependency chain/graph | < 100 ms |
+| Recalculate a representative 100-statement worksheet from the top | < 100 ms |
 | Scroll a 10,000-row table | 60 FPS |
 | Render a 50-element SVG figure | < 50 ms |
 | Save a 1 MB worksheet document | < 500 ms |
@@ -159,7 +159,7 @@ It must include:
 - A Math expression with variables and a unit-bearing result.
 - A Table with authored cells and a matrix/vector view.
 - A Diagram figure with at least one parameter bound to a calculated value.
-- Cross-block references and explicit expected outputs.
+- Sequential variable assignments and references to earlier definitions, with explicit expected outputs.
 - Schema versions and expected diagnostics.
 
 Required regression: serialize → deserialize → evaluate/recalculate → compare normalized values, units, diagnostics, and figure geometry. Each engine should test its own fixture section independently; Jabr-UI runs the complete round trip.
