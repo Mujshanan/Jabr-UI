@@ -119,14 +119,15 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
     const styles = getComputedStyle(element);
     return { minHeight: styles.minHeight, fontSize: styles.fontSize };
   });
-  const externalTextareaStyles = await page.evaluate(() => {
-    const externalTextarea = document.createElement('textarea');
-    document.body.append(externalTextarea);
-    const styles = getComputedStyle(externalTextarea);
-    const result = { fontSize: styles.fontSize };
-    externalTextarea.remove();
-    return result;
-  });
+  const documentHasTextareaRule = await page.evaluate(() =>
+    Array.from(document.styleSheets).some(sheet => {
+      try {
+        return Array.from(sheet.cssRules).some(rule => rule.cssText.includes('textarea'));
+      } catch {
+        return false;
+      }
+    })
+  );
 
   expect(rootDisplay).toBe('block');
   expect(worksheetDisplay).toBe('block');
@@ -134,7 +135,8 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
   expect(textDisplay).toBe('block');
   expect(internalTextareaStyles.minHeight).toBe('42px');
   expect(internalTextareaStyles.fontSize).toBe('14px');
-  expect(externalTextareaStyles.fontSize).not.toBe('14px');
+  // Textarea styling belongs to the text block's shadow stylesheet, not document CSS.
+  expect(documentHasTextareaRule).toBe(false);
 });
 test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
