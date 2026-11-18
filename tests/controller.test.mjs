@@ -16,11 +16,11 @@ const { WorksheetController } = await vite.ssrLoadModule('/src/worksheet/control
 const { worksheetResults } = await vite.ssrLoadModule('/src/worksheet/result-store.ts');
 const { MockEvaluationAdapter } = await vite.ssrLoadModule('/src/worksheet/mock-evaluator.ts');
 
-class FakeSubject {
+class FakeSlot {
   listeners = new Set();
-  subscribe(listener) {
+  on(listener) {
     this.listeners.add(listener);
-    return { unsubscribe: () => this.listeners.delete(listener) };
+    return { dispose: () => this.listeners.delete(listener) };
   }
   emit(value) { for (const listener of [...this.listeners]) listener(value); }
 }
@@ -28,7 +28,7 @@ class FakeSubject {
 function fixture(ids) {
   const blocks = ids.map(id => ({ id, flavour: 'jabr:math', latex: 'x := 0', displayUnit: '' }));
   const worksheet = { id: 'worksheet', children: blocks };
-  const store = { slots: { blockUpdated: new FakeSubject() } };
+  const store = { slots: { blockUpdated: new FakeSlot() } };
   const update = (block, key) => store.slots.blockUpdated.emit({
     type: 'update', id: block.id, flavour: block.flavour, props: { key },
   });
