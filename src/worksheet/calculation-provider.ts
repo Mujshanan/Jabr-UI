@@ -19,6 +19,7 @@ export type EvaluationResponse = {
 export interface EvaluationAdapter {
   evaluate(request: EvaluationRequest): Promise<EvaluationResponse>;
   setCurrentRevision?(documentId: string, blockId: string, revision: number): void;
+  removeBlock?(documentId: string, blockId: string): void;
   dispose?(): void;
 }
 
@@ -32,7 +33,7 @@ export interface CalculationProvider {
   registerBlock(blockId: string): void;
   currentRevision(blockId: string): number;
   invalidateFrom(documentId: string, blockId: string, orderedBlockIds: readonly string[]): Array<{ blockId: string; sourceRevision: number }>;
-  removeBlock(blockId: string): void;
+  removeBlock(documentId: string, blockId: string): void;
   evaluate(request: EvaluationRequest): Promise<EvaluationResponse | null>;
   isCurrent(request: EvaluationRequest): boolean;
   dispose(): void;
@@ -76,7 +77,8 @@ export class LocalOrderedCalculationProvider implements CalculationProvider {
     return invalidated;
   }
 
-  removeBlock(blockId: string): void {
+  removeBlock(documentId: string, blockId: string): void {
+    this.adapter.removeBlock?.(documentId, blockId);
     this.revisions.delete(blockId);
     this.latestRequests.delete(blockId);
   }
