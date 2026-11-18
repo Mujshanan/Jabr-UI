@@ -4,7 +4,7 @@
 **Status:** Proposed baseline for repository adoption  
 **Reviewed:** 2026-11-18  
 **Owner:** Jabr architecture / engine maintainers  
-**Scope:** Jabr-kernel, Jabr Math (currently Jabr-cli), Jabr Diagram (Jabr-draw / Jabr-diagram), Jabr Table (Jabr-table), and the Jabr-UI Rust/WASM/native integration boundary.
+**Scope:** Jabr-kernel, Jabr Math (canonical repository: Jabr-math; formerly Jabr-cli), Jabr Diagram (canonical repository: Jabr-diagram; formerly Jabr-draw), Jabr Table (Jabr-table), and the Jabr-UI Rust/WASM/native integration boundary.
 
 This is a dependency admission policy, not a request to add every listed crate. A crate marked *conditional* must not be added until its stated capability is part of an approved milestone. Package availability and published documentation were checked against the crates.io package entries on the review date; links below point to the canonical registry entries. Published API documentation and feature metadata were also inspected where available. Registry availability is not proof that a crate compiles for Jabr's exact target/feature matrix: target compilation and transitive-license checks remain mandatory before adoption.
 
@@ -31,11 +31,11 @@ This is a dependency admission policy, not a request to add every listed crate. 
 
 | Repository / layer | Owns | Dependency rule |
 |---|---|---|
-| **Jabr-kernel** | Shared primitive types, stable IDs, source spans, normalized diagnostics, small common contracts, and (where approved) shared state primitives | Optional Serde only; no general-purpose utility stack |
-| **Jabr Math** (`Jabr-cli` today) | Lexing, parsing, AST, evaluation, numeric semantics, runtime-defined units/dimensions, scopes, dependencies, math diagnostics and CLI workbench | Own parser, numeric and CLI dependencies |
-| **Jabr Diagram** (`Jabr-draw` / `Jabr-diagram`) | Diagram document model, geometry, transforms, constraints, hit-test data, validation and export | Own geometry and export dependencies; browser renderer remains TypeScript unless measured otherwise |
+| **Jabr-kernel** | Domain-neutral NodeId/Port, Revision, Snapshot<T>, opaque ResultStore<V>, generic dependency-graph primitives, diagnostics and spans. No Math values, variables, scopes, worksheet scheduling or transaction semantics. | Optional Serde only; no general-purpose utility stack |
+| **Jabr Math** (`Jabr-math`; formerly `Jabr-cli`) | Lexing, parsing, AST, evaluation, numeric semantics, runtime-defined units/dimensions, language-level scopes and expression dependencies, math diagnostics and its minimal engine workbench | Own parser, numeric and workbench dependencies; no worksheet-wide scheduler |
+| **Jabr Diagram** (`Jabr-diagram`; formerly `Jabr-draw`) | Renderer-independent diagram document model, geometry, transforms, constraints, hit-test data, validation and export; current BlockSuite Gfx prototype remains an adapter/workbench | Own geometry and export dependencies; browser renderer remains TypeScript unless measured otherwise |
 | **Jabr Table** (`Jabr-table`) | Typed table model, stable row/column identity, cell references, ranges, lookup/aggregation and file interchange | Own table/file-format dependencies; no formula evaluator |
-| **Jabr-UI** | AFFiNE/BlockSuite custom blocks, presentation, worksheet orchestration, document persistence/collaboration integration and TypeScript adapters | No engine implementation dependencies; consume versioned engine DTOs |
+| **Jabr-engine** (planned; no repository yet) | Worksheet node mapping, cross-block bindings, graph construction, scheduling/recalculation orchestration and calculation-result lifecycle using generic Kernel primitives | Depends on Kernel and the domain engines through stable contracts; owns orchestration only |\n| **Jabr-UI** | AFFiNE/BlockSuite custom blocks, presentation, authored document persistence/collaboration integration and TypeScript adapters | No engine implementation dependencies; consume versioned Engine/engine DTOs |
 | **WASM adapter** | Rust↔JavaScript ABI, DTO conversion, generated TS declarations, browser-specific panic/reporting hooks | Separate crate/target layer; never a kernel dependency |
 | **Native host / Tauri app** | Desktop shell, filesystem, native commands and lifecycle | Native-only application layer; never a dependency of browser engine cores |
 
