@@ -173,6 +173,13 @@ test('MathLive inspector reads prompt data only while expanded and reflects late
   // Insert before spying: the template insertion implementation itself reads
   // existing prompts to guarantee unique IDs.
   await page.getByRole('button', { name: 'Insert Fraction' }).click();
+  // Resolve the target prompt before installing the read counter, otherwise
+  // the test's own lookup would count as a collapsed-inspector read.
+  const numeratorPromptId = await source.evaluate((field: Element & {
+    getPrompts: () => string[];
+  }) => field.getPrompts().find(id => id.startsWith('numeratorp')) ?? null);
+  expect(numeratorPromptId).not.toBeNull();
+
   await source.evaluate((field: Element & { getPrompts: () => string[]; __promptReadCount?: number }) => {
     const original = field.getPrompts.bind(field);
     field.__promptReadCount = 0;
@@ -181,11 +188,6 @@ test('MathLive inspector reads prompt data only while expanded and reflects late
       return original();
     };
   });
-
-  const numeratorPromptId = await source.evaluate((field: Element & {
-    getPrompts: () => string[];
-  }) => field.getPrompts().find(id => id.startsWith('numeratorp')) ?? null);
-  expect(numeratorPromptId).not.toBeNull();
 
   // Set the named MathLive prompt directly. Keyboard typing is caret-dependent
   // and can land outside the numerator when the template's selection changes.
