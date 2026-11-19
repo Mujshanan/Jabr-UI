@@ -149,7 +149,7 @@ test('MathLive slash shortcut and toolbar insert structured templates with uniqu
   // The Mathcad-style slash shortcut must insert a native MathLive fraction.
   await source.press('/');
   await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value))
-    .toContain('\\\\frac');
+    .toContain('\\frac');
   const shortcutPrompts = await source.evaluate((field: Element & { getPrompts: () => string[] }) => field.getPrompts());
   expect(shortcutPrompts.length).toBeGreaterThanOrEqual(2);
   expect(new Set(shortcutPrompts).size).toBe(shortcutPrompts.length);
@@ -161,10 +161,10 @@ test('MathLive slash shortcut and toolbar insert structured templates with uniqu
   expect(new Set(repeatedPrompts).size).toBe(repeatedPrompts.length);
 
   const templates = [
-    { label: 'Insert Square root', latex: '\\\\sqrt' },
-    { label: 'Insert Indexed root', latex: '\\\\sqrt' },
-    { label: 'Insert Integral', latex: '\\\\int' },
-    { label: 'Insert 2×2 matrix', latex: '\\\\begin{bmatrix}' },
+    { label: 'Insert Square root', latex: '\\sqrt' },
+    { label: 'Insert Indexed root', latex: '\\sqrt' },
+    { label: 'Insert Integral', latex: '\\int' },
+    { label: 'Insert 2×2 matrix', latex: '\\begin{bmatrix}' },
   ];
   for (const template of templates) {
     await page.getByRole('button', { name: template.label }).click();
