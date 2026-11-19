@@ -182,8 +182,16 @@ test('MathLive inspector reads prompt data only while expanded and reflects late
     };
   });
 
-  await source.focus();
-  await source.press('7');
+  const numeratorPromptId = await source.evaluate((field: Element & {
+    getPrompts: () => string[];
+  }) => field.getPrompts().find(id => id.startsWith('numeratorp')) ?? null);
+  expect(numeratorPromptId).not.toBeNull();
+
+  // Set the named MathLive prompt directly. Keyboard typing is caret-dependent
+  // and can land outside the numerator when the template's selection changes.
+  await source.evaluate((field: Element & {
+    setPromptValue: (id: string, value: string) => void;
+  }, id) => field.setPromptValue(id, '7'), numeratorPromptId);
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) =>
     field.__promptReadCount ?? 0)).toBe(0);
   await expect(inspector).not.toHaveAttribute('open', '');
@@ -193,7 +201,10 @@ test('MathLive inspector reads prompt data only while expanded and reflects late
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) =>
     field.__promptReadCount ?? 0)).toBeGreaterThan(0);
   await expect(inspector.locator('pre')).toContainText('\\frac');
-  await expect(inspector.locator('dl dd').first()).toContainText('7');
+  const numeratorValue = inspector.locator('dl dt')
+    .filter({ hasText: numeratorPromptId! })
+    .locator('xpath=following-sibling::dd[1]');
+  await expect(numeratorValue).toContainText('7');
 });
 
 
