@@ -72,15 +72,15 @@ test('real BlockSuite model updates, undo and redo drive controller invalidation
   await expect(page.locator('jabr-math-block .result-status').first()).toHaveText('Result');
 
   const blockId = await getFirstMathBlockId(page);
-  await page.evaluate(() => {
+  await page.evaluate(id => {
     const api = window.__JABR_TEST__;
     if (!api) throw new Error('Browser test seam not installed');
-    const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
-    if (!block) throw new Error('Math block not found');
+    const block = api.doc.getBlockById(id);
+    if (!block) throw new Error(`Math block ${id} not found for undo/redo mutation`);
     api.doc.captureSync();
     api.doc.updateBlock(block, { latex: 'MOCK_ERROR', displayUnit: 'kN' });
     api.doc.captureSync();
-  });
+  }, blockId);
 
   await expect.poll(() => readResultRevision(page, blockId)).toBe(1);
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
@@ -188,8 +188,13 @@ test('MathLive inspector stays lazy while collapsed and refreshes prompt values 
   const collapsedValue = await firstPrompt.innerText();
 
   await inspector.locator('summary').click();
+  await source.evaluate((field: Element & { __promptReadCount?: number }) => {
+    field.__promptReadCount = 0;
+  });
   await source.focus();
   await source.press('7');
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
+    .toBe(0);
   await expect(firstPrompt).toHaveText(collapsedValue);
 
   await inspector.locator('summary').click();
