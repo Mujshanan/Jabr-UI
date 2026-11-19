@@ -183,7 +183,8 @@ test('MathLive inspector stays lazy while collapsed and refreshes prompt values 
   await inspector.locator('summary').click();
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
     .toBeGreaterThan(0);
-  const firstPrompt = inspector.locator('dd').first();
+  // The default force placeholder is first; the inserted fraction numerator follows it.
+  const firstPrompt = inspector.locator('dd').nth(1);
   await expect(firstPrompt).toBeVisible();
   const collapsedValue = await firstPrompt.innerText();
 
