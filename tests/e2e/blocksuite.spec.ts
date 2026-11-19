@@ -105,7 +105,7 @@ test('equals remains authored math input and does not trigger evaluation', async
 
   await source.press('=');
   await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value)).toContain('=');
-  await expect(result).toHaveValue('');
+  await expect.poll(() => result.evaluate((field: Element & { value: string }) => field.value)).toBe('');
   await expect(page.locator('jabr-math-block .result-status').first()).toHaveText('Press Evaluate to request evaluation');
 });
 
@@ -127,12 +127,12 @@ test('external model updates synchronize MathLive without echoing a document wri
     };
     api.getUpdateBlockCallCount = () => writeCount;
     // Apply an external authored update without going through the wrapped method.
-    originalUpdate(model, { latex: String.raw`\\frac{1}{2}` });
+    originalUpdate(model, { latex: String.raw`\frac{1}{2}` });
     return block.id;
   });
 
   await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value))
-    .toContain('\\\\frac');
+    .toContain('\\frac');
   await expect.poll(() => page.evaluate(() => window.__JABR_TEST__?.getUpdateBlockCallCount?.() ?? -1))
     .toBe(0);
   await expect.poll(() => readBlockLatex(page, blockId)).toBe(String.raw`\\frac{1}{2}`);
