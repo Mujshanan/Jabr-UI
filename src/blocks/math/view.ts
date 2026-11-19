@@ -98,7 +98,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       letter-spacing: 0.12em;
     }
     .jabr-math-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
-    .jabr-template-button {
+    .jabr-template-button, .jabr-evaluate-button {
       border: 1px solid #e2e8f0;
       border-radius: 5px;
       padding: 5px 8px;
@@ -107,7 +107,8 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       cursor: pointer;
       font: 11px/1.3 Inter, ui-sans-serif, system-ui, sans-serif;
     }
-    .jabr-template-button:hover, .jabr-template-button:focus-visible {
+    .jabr-template-button:hover, .jabr-template-button:focus-visible,
+    .jabr-evaluate-button:hover, .jabr-evaluate-button:focus-visible {
       border-color: #94a3b8; background: #f8fafc; outline: none;
     }
     .jabr-math-help {
@@ -176,9 +177,10 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   private promptOutput: PromptOutput[] = [];
   private templateSequence = 0;
   private inspecting = false;
+  private syncingFromModel = false;
 
   private readonly onMathInput = () => {
-    if (!this.mathField) return;
+    if (!this.mathField || this.syncingFromModel) return;
     const latex = this.mathField.value;
     if (latex !== this.model.latex) {
       this.doc.updateBlock(this.model, { latex });
@@ -192,13 +194,8 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   };
 
   private readonly onMathKeydown = (event: KeyboardEvent) => {
-    if (!this.mathField || event.defaultPrevented) return;
+    if (!this.mathField || event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
     if (event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.key === '=') {
-      event.preventDefault();
-      this.requestEvaluation();
-      return;
-    }
     if (event.key === '/') {
       // Match Mathcad: slash inserts a structured fraction, not a literal slash.
       event.preventDefault();
@@ -212,6 +209,8 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       this.doc.updateBlock(this.model, { displayUnit });
     }
   };
+
+  private readonly onEvaluateClick = () => this.requestEvaluation();
 
   private requestEvaluation() {
     this.dispatchEvent(new CustomEvent('jabr-evaluate-request', {
@@ -228,7 +227,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
       case 'success': return 'Result';
       case 'error': return state.diagnostic || 'Evaluation error';
       case 'unavailable': return state.diagnostic || 'CLI evaluator unavailable';
-      default: return 'Press = to request evaluation';
+      default: return 'Press Evaluate to request evaluation';
     }
   }
 
@@ -245,6 +244,7 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
   }
 
   private attachMathField() {
+    if (!this.isConnected) return;
     const field = this.renderRoot.querySelector('math-field') as MathFieldElement | null;
     if (!field || this.mathField === field) return;
     this.detachMathField();
@@ -266,10 +266,18 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
     this.resultSubscription = null;
     this.modelSubscription?.dispose();
     this.modelSubscription = null;
+    this.syncingFromModel = false;
   }
 
   private syncFromModel() {
-    if (this.mathField && this.mathField.value !== this.model.latex) this.mathField.value = this.model.latex;
+    if (this.mathField && this.mathField.value !== this.model.latex) {
+      this.syncingFromModel = true;
+      try {
+        this.mathField.value = this.model.latex;
+      } finally {
+        this.syncingFromModel = false;
+      }
+    }
     this.refreshOutput();
   }
 
@@ -315,9 +323,11 @@ export class JabrMathBlockView extends BlockComponent<JabrMathModel> {
               title="${template.description}" aria-label="Insert ${template.label}"
               @click=${() => this.insertTemplate(template)}>${template.label}</button>
           `)}
+          <button class="jabr-evaluate-button" type="button" aria-label="Evaluate expression"
+            @click=${this.onEvaluateClick}>Evaluate</button>
         </div>
         <div class="jabr-math-help">
-          / inserts a fraction · = requests evaluation · Tab / Shift+Tab moves between placeholders · Arrow keys navigate mathematical structures
+          / inserts a fraction · = inserts an equals sign · Evaluate runs the expression · Tab / Shift+Tab moves between placeholders · Arrow keys navigate mathematical structures
         </div>
         <div class="jabr-math-row">
           <div class="math-input-zone">
