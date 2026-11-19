@@ -17,7 +17,7 @@ Computed results and diagnostics are transient UI state, never Yjs block propert
 - Worksheet controller with source-revision tracking, ordered invalidation, and stale-response protection.
 - Transient result store.
 - Opt-in deterministic mock evaluator using exact source fixtures only. It does not parse or calculate.
-- Real Yjs UndoManager regression test bridged through a model-like propsUpdated event.
+- Chromium E2E coverage for the real BlockSuite model/Yjs UndoManager bridge, read-only result rendering, Yjs persistence isolation, authored-source reload, and lazy MathLive inspector reads.
 
 ## Milestone 4 — Worksheet controller and mock evaluation
 
@@ -28,23 +28,26 @@ Computed results and diagnostics are transient UI state, never Yjs block propert
 5. [x] Provide an opt-in, deterministic fixture adapter; unknown source is an explicit mock error.
 6. [x] Test pending, success, error, unavailable, and stale-response states.
 7. [x] Exercise actual Yjs UndoManager undo/redo and verify that model update events invalidate the controller state.
-8. [ ] Verify the real BlockSuite model-to-Yjs UndoManager bridge in a browser session.
-9. [ ] Verify result-zone rendering and editing/persistence behavior in a browser.
+8. [x] Verify the real BlockSuite model-to-Yjs UndoManager bridge in Chromium; undo/redo advances source revisions and invalidates derived output.
+9. [x] Verify read-only result rendering, exclusion of derived state from Yjs, and authored LaTeX persistence across IndexedDB reload.
 
 ## Validation checklist
 
 Run and record:
 
 - `pnpm test:controller`
+- `pnpm test:e2e`
 - `pnpm typecheck`
 - `pnpm build`
 - Chromium E2E: enable mock evaluator, press `=` on the default sample, update the actual BlockSuite model, then call the real `doc.undo()`/`doc.redo()` history methods and verify controller revisions and result invalidation.
 - Chromium E2E: confirm result-zone output is read-only and result/diagnostic state is absent from the persisted Yjs block.
-- Chromium E2E: confirm authored LaTeX survives IndexedDB reload while transient result state resets.
+- Chromium E2E: confirm MathLive-authored LaTeX survives IndexedDB reload while transient result state resets.
+- Chromium E2E: verify `/` inserts a native MathLive fraction, toolbar insertion covers square roots, indexed roots, integrals and 2×2 matrices, and repeated templates never reuse prompt IDs.
+- Chromium E2E: verify the MathLive inspector reads prompt data only while expanded.
 
 ## Explicit non-goals
 
 - No calculation engine, worksheet dependency graph, or recalculation scheduler in Jabr-UI.
 - No local expression parsing or unit interpretation.
 - No private Yjs fork for ordinary AFFiNE integration.
-- No merge until browser verification and all agreed worksheet interactions are complete.
+- Do not begin the evaluation-contract/controller follow-up until the MathLive editor interactions and the browser validation checklist pass.
