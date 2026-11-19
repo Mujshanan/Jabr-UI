@@ -171,6 +171,10 @@ test('MathLive inspector stays lazy while collapsed and refreshes prompt values 
   const inspector = page.locator('jabr-math-block details.math-output').first();
   await page.getByRole('button', { name: 'Insert Fraction' }).click();
 
+  const numeratorPromptId = await source.evaluate((field: Element & { getPrompts: () => string[] }) =>
+    field.getPrompts().find(id => id.startsWith('numerator')) ?? null);
+  if (!numeratorPromptId) throw new Error('Inserted fraction numerator prompt was not created');
+
   await source.evaluate((field: Element & { getPrompts: () => string[]; __promptReadCount?: number }) => {
     const original = field.getPrompts.bind(field);
     field.__promptReadCount = 0;
@@ -183,25 +187,24 @@ test('MathLive inspector stays lazy while collapsed and refreshes prompt values 
   await inspector.locator('summary').click();
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
     .toBeGreaterThan(0);
-  // The default force placeholder is first; the inserted fraction numerator follows it.
-  const firstPrompt = inspector.locator('dd').nth(1);
-  await expect(firstPrompt).toBeVisible();
-  const collapsedValue = await firstPrompt.innerText();
+  const numeratorOutput = inspector.locator('dd').nth(1);
+  await expect(numeratorOutput).toBeVisible();
+  const collapsedValue = await numeratorOutput.innerText();
 
   await inspector.locator('summary').click();
-  await source.evaluate((field: Element & { __promptReadCount?: number }) => {
-    field.__promptReadCount = 0;
-  });
-  await source.focus();
-  await source.press('7');
+  await source.evaluate((field: Element & {
+    setPromptValue: (id: string, content: string, options: Record<string, unknown>) => void;
+  }, id: string) => field.setPromptValue(id, '7', {}), numeratorPromptId);
+  await expect.poll(() => source.evaluate((field: Element & { getPromptValue: (id: string) => string }, id: string) =>
+    field.getPromptValue(id), numeratorPromptId)).toBe('7');
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
     .toBe(0);
-  await expect(firstPrompt).toHaveText(collapsedValue);
+  await expect(numeratorOutput).toHaveText(collapsedValue);
 
   await inspector.locator('summary').click();
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
     .toBeGreaterThan(0);
-  await expect(firstPrompt).not.toHaveText(collapsedValue);
+  await expect(numeratorOutput).toHaveText('7');
 });
 
 
