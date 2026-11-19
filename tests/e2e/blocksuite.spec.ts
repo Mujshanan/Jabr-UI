@@ -135,7 +135,7 @@ test('external model updates synchronize MathLive without echoing a document wri
     .toContain('\\frac');
   await expect.poll(() => page.evaluate(() => window.__JABR_TEST__?.getUpdateBlockCallCount?.() ?? -1))
     .toBe(0);
-  await expect.poll(() => readBlockLatex(page, blockId)).toBe(String.raw`\\frac{1}{2}`);
+  await expect.poll(() => readBlockLatex(page, blockId)).toBe(String.raw`\frac{1}{2}`);
 });
 
 test('IME composition and modified slash do not insert a fraction shortcut', async ({ page }) => {
