@@ -81,21 +81,25 @@ test('result zone is read-only and computed state is absent from the persisted Y
   expect(persisted).not.toContain('diagnostic');
 });
 
-test('authored LaTeX persists across reload while transient result state resets', async ({ page }) => {
+test('MathLive-authored LaTeX persists across reload while transient result state resets', async ({ page }) => {
   const blockId = await page.evaluate(() => {
     const api = window.__JABR_TEST__;
     if (!api) throw new Error('Browser test seam not installed');
     const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
     if (!block) throw new Error('Math block not found');
-    api.doc.updateBlock(block, { latex: 'persisted source test' });
     return block.id;
   });
+  const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
+  await source.press('1');
+  const authoredLatex = await source.evaluate((field: Element & { value: string }) => field.value);
   await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)!.latex, blockId))
-    .toBe('persisted source test');
+    .toBe(authoredLatex);
+  await expect(authoredLatex).not.toBe(DEFAULT_MATH_LATEX);
+
   await page.reload();
   await expect(page.locator('#save-status')).toContainText('Local document ready');
   await expect.poll(() => page.locator('jabr-math-block math-field.jabr-math-field').first()
-    .evaluate((field: Element & { value: string }) => field.value)).toBe('persisted source test');
+    .evaluate((field: Element & { value: string }) => field.value)).toBe(authoredLatex);
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
 });
 
@@ -136,4 +140,38 @@ test('MathLive inspector reads prompt data only while expanded', async ({ page }
 
   await page.locator('jabr-math-block details.math-output').first().locator('summary').click();
   await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBeGreaterThan(0);
+});
+
+
+test('MathLive slash shortcut and toolbar insert structured templates with unique prompt IDs', async ({ page }) => {
+  const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
+
+  // The Mathcad-style slash shortcut must insert a native MathLive fraction.
+  await source.press('/');
+  await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value))
+    .toContain('\\frac');
+  const shortcutPrompts = await source.evaluate((field: Element & { getPrompts: () => string[] }) => field.getPrompts());
+  expect(shortcutPrompts.length).toBeGreaterThanOrEqual(2);
+  expect(new Set(shortcutPrompts).size).toBe(shortcutPrompts.length);
+
+  // Repeated insertion must generate fresh IDs rather than collide with existing prompts.
+  await page.getByRole('button', { name: 'Insert Fraction' }).click();
+  const repeatedPrompts = await source.evaluate((field: Element & { getPrompts: () => string[] }) => field.getPrompts());
+  expect(repeatedPrompts.length).toBeGreaterThan(shortcutPrompts.length);
+  expect(new Set(repeatedPrompts).size).toBe(repeatedPrompts.length);
+
+  const templates = [
+    { label: 'Insert Square root', latex: '\\sqrt' },
+    { label: 'Insert Indexed root', latex: '\\sqrt' },
+    { label: 'Insert Integral', latex: '\\int' },
+    { label: 'Insert 2×2 matrix', latex: '\\begin{bmatrix}' },
+  ];
+  for (const template of templates) {
+    await page.getByRole('button', { name: template.label }).click();
+    await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value))
+      .toContain(template.latex);
+  }
+
+  const finalPrompts = await source.evaluate((field: Element & { getPrompts: () => string[] }) => field.getPrompts());
+  expect(new Set(finalPrompts).size).toBe(finalPrompts.length);
 });
