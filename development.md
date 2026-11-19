@@ -17,7 +17,8 @@ Computed results and diagnostics are transient UI state, never Yjs block propert
 - Worksheet controller with source-revision tracking, ordered invalidation, and stale-response protection.
 - Transient result store.
 - Opt-in deterministic mock evaluator using exact source fixtures only. It does not parse or calculate.
-- Chromium E2E coverage for the real BlockSuite model/Yjs UndoManager bridge, read-only result rendering, Yjs persistence isolation, authored-source reload, and lazy MathLive inspector reads.
+- Chromium E2E coverage for the real BlockSuite model/Yjs UndoManager bridge, read-only result rendering, Yjs persistence isolation, authored LaTeX and `displayUnit` persistence, reload hydration, and lazy MathLive inspector refresh behavior.
+- The E2E suite centralizes the current `=` evaluation shortcut in one helper so a future trigger-contract change has one test seam to update.
 
 ## Milestone 4 — Worksheet controller and mock evaluation
 
@@ -41,7 +42,9 @@ Run and record:
 - `pnpm build`
 - Chromium E2E: enable mock evaluator, press `=` on the default sample, update the actual BlockSuite model, then call the real `doc.undo()`/`doc.redo()` history methods and verify controller revisions and result invalidation.
 - Chromium E2E: confirm result-zone output is read-only and result/diagnostic state is absent from the persisted Yjs block.
-- Chromium E2E: confirm MathLive-authored LaTeX survives IndexedDB reload while transient result state resets.
+- Chromium E2E: confirm MathLive-authored LaTeX and `displayUnit` survive IndexedDB reload while transient result state resets; wait independently for BlockSuite model hydration and MathLive field synchronization.
+- Chromium E2E: verify `displayUnit` is authored Yjs state and follows undo/redo, while result and diagnostic fields remain transient.
+- Chromium E2E: verify inspector prompt values remain unchanged while collapsed after source edits and refresh when expanded; assert no prompt reads occur during the collapsed edit.
 - Chromium E2E: verify `/` inserts a native MathLive fraction, toolbar insertion covers square roots, indexed roots, integrals and 2×2 matrices, and repeated templates never reuse prompt IDs.
 - Chromium E2E: verify the MathLive inspector reads prompt data only while expanded.
 
