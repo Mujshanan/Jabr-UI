@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { DEFAULT_MATH_LATEX } from '../../src/blocks/math/schema';
 
 declare global {
@@ -9,15 +9,51 @@ declare global {
         updateBlock(block: unknown, props: Record<string, unknown>): void;
         undo(): void;
         redo(): void;
-        getBlockById(id: string): { id: string; latex: string; yBlock: { toJSON(): unknown } } | null;
+        getBlockById(id: string): { id: string; latex: string; displayUnit: string; yBlock: { toJSON(): unknown } } | null;
       };
       worksheet: { children: Array<{ id: string; flavour: string; latex: string }> };
-      getResult(blockId: string): { status: string; resultLatex: string; sourceRevision: number };
+      getResult(blockId: string): { status: string; resultLatex: string; sourceRevision: number } | undefined;
     };
   }
 }
 
-async function resetLocalDocument(page: import('@playwright/test').Page) {
+async function getFirstMathBlockId(page: Page) {
+  return page.evaluate(() => {
+    const api = window.__JABR_TEST__;
+    if (!api) throw new Error('Browser test seam not installed');
+    const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
+    if (!block) throw new Error('Math block not found in worksheet');
+    return block.id;
+  });
+}
+
+// Keep the current keyboard contract in one place for easy updates if evaluation
+// later moves from '=' to a button or another command.
+async function requestEvaluation(source: Locator) {
+  await requestEvaluation(source);
+}
+
+async function readBlockLatex(page: Page, blockId: string): Promise<string | null> {
+  return page.evaluate(id => window.__JABR_TEST__?.doc.getBlockById(id)?.latex ?? null, blockId);
+}
+
+async function readBlockDisplayUnit(page: Page, blockId: string): Promise<string | null> {
+  return page.evaluate(id => window.__JABR_TEST__?.doc.getBlockById(id)?.displayUnit ?? null, blockId);
+}
+
+async function readResultRevision(page: Page, blockId: string): Promise<number | null> {
+  return page.evaluate(id => window.__JABR_TEST__?.getResult(id)?.sourceRevision ?? null, blockId);
+}
+
+async function runHistoryAction(page: Page, action: 'undo' | 'redo') {
+  await page.evaluate(action => {
+    const api = window.__JABR_TEST__;
+    if (!api) throw new Error('Browser test seam not installed');
+    api.doc[action]();
+  }, action);
+}
+
+async function resetLocalDocument(page: Page) {
   // Playwright creates a fresh browser context for each test, so IndexedDB
   // starts empty without deleting databases from an opaque about:blank origin.
   await page.goto('/?e2e=1');
@@ -30,34 +66,35 @@ test.beforeEach(async ({ page }) => resetLocalDocument(page));
 test('real BlockSuite model updates, undo and redo drive controller invalidation in Chromium', async ({ page }) => {
   await page.getByRole('button', { name: 'Enable mock evaluator' }).click();
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
-  await source.press('=');
+  await requestEvaluation(source);
   const result = page.locator('jabr-math-block math-field.jabr-result-field').first();
   await expect.poll(() => result.evaluate((field: Element & { value: string }) => field.value)).toMatch(/MOCK/);
   await expect(page.locator('jabr-math-block .result-status').first()).toHaveText('Result');
 
-  const blockId = await page.evaluate(() => {
+  const blockId = await getFirstMathBlockId(page);
+  await page.evaluate(() => {
     const api = window.__JABR_TEST__;
     if (!api) throw new Error('Browser test seam not installed');
     const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
     if (!block) throw new Error('Math block not found');
     api.doc.captureSync();
-    api.doc.updateBlock(block, { latex: 'MOCK_ERROR' });
+    api.doc.updateBlock(block, { latex: 'MOCK_ERROR', displayUnit: 'kN' });
     api.doc.captureSync();
-    return block.id;
   });
 
-  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.getResult(id).sourceRevision, blockId)).toBe(1);
+  await expect.poll(() => readResultRevision(page, blockId)).toBe(1);
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
   await expect.poll(() => result.evaluate((field: Element & { value: string }) => field.value)).toBe('');
 
-  await page.evaluate(() => window.__JABR_TEST__!.doc.undo());
-  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)!.latex, blockId))
-    .toBe(DEFAULT_MATH_LATEX);
-  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.getResult(id).sourceRevision, blockId)).toBe(2);
+  await runHistoryAction(page, 'undo');
+  await expect.poll(() => readBlockLatex(page, blockId)).toBe(DEFAULT_MATH_LATEX);
+  await expect.poll(() => readBlockDisplayUnit(page, blockId)).toBe('');
+  await expect.poll(() => readResultRevision(page, blockId)).toBe(2);
 
-  await page.evaluate(() => window.__JABR_TEST__!.doc.redo());
-  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)!.latex, blockId)).toBe('MOCK_ERROR');
-  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.getResult(id).sourceRevision, blockId)).toBe(3);
+  await runHistoryAction(page, 'redo');
+  await expect.poll(() => readBlockLatex(page, blockId)).toBe('MOCK_ERROR');
+  await expect.poll(() => readBlockDisplayUnit(page, blockId)).toBe('kN');
+  await expect.poll(() => readResultRevision(page, blockId)).toBe(3);
   await expect.poll(() => result.evaluate((field: Element & { value: string }) => field.value)).toBe('');
 });
 
@@ -66,40 +103,45 @@ test('result zone is read-only and computed state is absent from the persisted Y
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
   const result = page.locator('jabr-math-block math-field.jabr-result-field').first();
   await expect(result).toHaveAttribute('read-only', '');
-  await source.press('=');
+  await requestEvaluation(source);
   await expect.poll(() => result.evaluate((field: Element & { value: string }) => field.value)).toMatch(/MOCK/);
 
-  const persisted = await page.evaluate(() => {
-    const api = window.__JABR_TEST__;
-    if (!api) throw new Error('Browser test seam not installed');
-    const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
-    if (!block) throw new Error('Math block not found');
-    return JSON.stringify(api.doc.getBlockById(block.id)?.yBlock.toJSON());
-  });
+  const blockId = await getFirstMathBlockId(page);
+  await page.locator('jabr-math-block .unit-override').first().fill('kN');
+  await expect.poll(() => readBlockDisplayUnit(page, blockId)).toBe('kN');
+  const persisted = await page.evaluate(id => {
+    const block = window.__JABR_TEST__?.doc.getBlockById(id);
+    if (!block) throw new Error(`Math block ${id} not found while reading Yjs state`);
+    return JSON.stringify(block.yBlock.toJSON());
+  }, blockId);
   expect(persisted).not.toContain('resultLatex');
   expect(persisted).not.toContain('resultStatus');
   expect(persisted).not.toContain('diagnostic');
+  expect(persisted).toContain('displayUnit');
+  expect(persisted).toContain('kN');
 });
 
 test('MathLive-authored LaTeX persists across reload while transient result state resets', async ({ page }) => {
-  const blockId = await page.evaluate(() => {
-    const api = window.__JABR_TEST__;
-    if (!api) throw new Error('Browser test seam not installed');
-    const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
-    if (!block) throw new Error('Math block not found');
-    return block.id;
-  });
+  const blockId = await getFirstMathBlockId(page);
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
   await source.press('1');
   const authoredLatex = await source.evaluate((field: Element & { value: string }) => field.value);
-  await expect.poll(() => page.evaluate(id => window.__JABR_TEST__!.doc.getBlockById(id)!.latex, blockId))
-    .toBe(authoredLatex);
+  await expect.poll(() => readBlockLatex(page, blockId)).toBe(authoredLatex);
   await expect(authoredLatex).not.toBe(DEFAULT_MATH_LATEX);
+
+  await page.locator('jabr-math-block .unit-override').first().fill('cm');
+  await expect.poll(() => readBlockDisplayUnit(page, blockId)).toBe('cm');
 
   await page.reload();
   await expect(page.locator('#save-status')).toContainText('Local document ready');
-  await expect.poll(() => page.locator('jabr-math-block math-field.jabr-math-field').first()
-    .evaluate((field: Element & { value: string }) => field.value)).toBe(authoredLatex);
+  const reloadedSource = page.locator('jabr-math-block math-field.jabr-math-field').first();
+  await expect(reloadedSource).toBeVisible();
+  // Provider startup and model hydration are separate; wait for both model and field.
+  await expect.poll(() => readBlockLatex(page, blockId), { timeout: 15_000 }).toBe(authoredLatex);
+  await expect.poll(() => reloadedSource.evaluate((field: Element & { value: string }) => field.value),
+    { timeout: 15_000 }).toBe(authoredLatex);
+  await expect(page.locator('jabr-math-block .unit-override').first()).toHaveValue('cm');
+  await expect.poll(() => readBlockDisplayUnit(page, blockId), { timeout: 15_000 }).toBe('cm');
   await expect(page.locator('jabr-math-block .result-status').first()).toContainText('Press =');
 });
 
@@ -124,8 +166,11 @@ test('BlockSuite shadow-DOM hosts and text styles are applied', async ({ page })
   expect(internalTextareaStyles.minHeight).toBe('42px');
   expect(internalTextareaStyles.fontSize).toBe('14px');
 });
-test('MathLive inspector reads prompt data only while expanded', async ({ page }) => {
+test('MathLive inspector stays lazy while collapsed and refreshes prompt values on open', async ({ page }) => {
   const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
+  const inspector = page.locator('jabr-math-block details.math-output').first();
+  await page.getByRole('button', { name: 'Insert Fraction' }).click();
+
   await source.evaluate((field: Element & { getPrompts: () => string[]; __promptReadCount?: number }) => {
     const original = field.getPrompts.bind(field);
     field.__promptReadCount = 0;
@@ -135,11 +180,22 @@ test('MathLive inspector reads prompt data only while expanded', async ({ page }
     };
   });
 
-  await source.press('1');
-  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBe(0);
+  await inspector.locator('summary').click();
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
+    .toBeGreaterThan(0);
+  const firstPrompt = inspector.locator('dd').first();
+  await expect(firstPrompt).toBeVisible();
+  const collapsedValue = await firstPrompt.innerText();
 
-  await page.locator('jabr-math-block details.math-output').first().locator('summary').click();
-  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0)).toBeGreaterThan(0);
+  await inspector.locator('summary').click();
+  await source.focus();
+  await source.press('7');
+  await expect(firstPrompt).toHaveText(collapsedValue);
+
+  await inspector.locator('summary').click();
+  await expect.poll(() => source.evaluate((field: Element & { __promptReadCount?: number }) => field.__promptReadCount ?? 0))
+    .toBeGreaterThan(1);
+  await expect(firstPrompt).not.toHaveText(collapsedValue);
 });
 
 
@@ -161,8 +217,8 @@ test('MathLive slash shortcut and toolbar insert structured templates with uniqu
   expect(new Set(repeatedPrompts).size).toBe(repeatedPrompts.length);
 
   const templates = [
-    { label: 'Insert Square root', latex: '\\sqrt' },
-    { label: 'Insert Indexed root', latex: '\\sqrt' },
+    { label: 'Insert Square root', latex: String.raw`\sqrt{` },
+    { label: 'Insert Indexed root', latex: String.raw`\sqrt[` },
     { label: 'Insert Integral', latex: '\\int' },
     { label: 'Insert 2×2 matrix', latex: '\\begin{bmatrix}' },
   ];
