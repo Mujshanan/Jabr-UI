@@ -18,7 +18,8 @@ Computed results and diagnostics are transient UI state, never Yjs block propert
 - Transient result store.
 - Opt-in deterministic mock evaluator using exact source fixtures only. It does not parse or calculate.
 - Chromium E2E coverage for the real BlockSuite model/Yjs UndoManager bridge, read-only result rendering, Yjs persistence isolation, authored LaTeX and `displayUnit` persistence, reload hydration, and lazy MathLive inspector refresh behavior.
-- The E2E suite centralizes the current `=` evaluation shortcut in one helper so a future trigger-contract change has one test seam to update.
+- Evaluation is initiated explicitly with the block's Evaluate action; `=` remains ordinary authored mathematical input.
+- MathLive key handling ignores IME composition and Alt/Ctrl/Meta-modified input; external model-to-field synchronization is guarded against feedback writes.
 
 ## Milestone 4 — Worksheet controller and mock evaluation
 
@@ -40,7 +41,7 @@ Run and record:
 - `pnpm test:e2e`
 - `pnpm typecheck`
 - `pnpm build`
-- Chromium E2E: enable mock evaluator, press `=` on the default sample, update the actual BlockSuite model, then call the real `doc.undo()`/`doc.redo()` history methods and verify controller revisions and result invalidation.
+- Chromium E2E: enable mock evaluator, click the explicit Evaluate action on the default sample, update the actual BlockSuite model, then call the real `doc.undo()`/`doc.redo()` history methods and verify controller revisions and result invalidation.
 - Chromium E2E: confirm result-zone output is read-only and result/diagnostic state is absent from the persisted Yjs block.
 - Chromium E2E: confirm MathLive-authored LaTeX and `displayUnit` survive IndexedDB reload while transient result state resets; wait independently for BlockSuite model hydration and MathLive field synchronization.
 - Chromium E2E: verify `displayUnit` is authored Yjs state and follows undo/redo, while result and diagnostic fields remain transient.
