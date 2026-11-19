@@ -13,6 +13,7 @@ declare global {
       };
       worksheet: { children: Array<{ id: string; flavour: string; latex: string }> };
       getResult(blockId: string): { status: string; resultLatex: string; sourceRevision: number } | undefined;
+      getUpdateBlockCallCount?(): number;
     };
   }
 }
@@ -106,6 +107,35 @@ test('equals remains authored math input and does not trigger evaluation', async
   await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value)).toContain('=');
   await expect(result).toHaveValue('');
   await expect(page.locator('jabr-math-block .result-status').first()).toHaveText('Press Evaluate to request evaluation');
+});
+
+
+test('external model updates synchronize MathLive without echoing a document write', async ({ page }) => {
+  const source = page.locator('jabr-math-block math-field.jabr-math-field').first();
+  const blockId = await page.evaluate(() => {
+    const api = window.__JABR_TEST__;
+    if (!api) throw new Error('Browser test seam not installed');
+    const block = api.worksheet.children.find(child => child.flavour === 'jabr:math');
+    if (!block) throw new Error('Math block not found');
+    const model = api.doc.getBlockById(block.id);
+    if (!model) throw new Error('Math block model not found');
+    const originalUpdate = api.doc.updateBlock.bind(api.doc);
+    let writeCount = 0;
+    api.doc.updateBlock = (target, props) => {
+      writeCount += 1;
+      originalUpdate(target, props);
+    };
+    api.getUpdateBlockCallCount = () => writeCount;
+    // Apply an external authored update without going through the wrapped method.
+    originalUpdate(model, { latex: String.raw`\\frac{1}{2}` });
+    return block.id;
+  });
+
+  await expect.poll(() => source.evaluate((field: Element & { value: string }) => field.value))
+    .toContain('\\\\frac');
+  await expect.poll(() => page.evaluate(() => window.__JABR_TEST__?.getUpdateBlockCallCount?.() ?? -1))
+    .toBe(0);
+  await expect.poll(() => readBlockLatex(page, blockId)).toBe(String.raw`\\frac{1}{2}`);
 });
 
 test('IME composition and modified slash do not insert a fraction shortcut', async ({ page }) => {
